@@ -573,7 +573,9 @@ the window in it's frame."
 (define-stump-event-handler :button-press (window code x y child time)
   (let ((screen (find-screen window))
         (mode-line (find-mode-line-by-window window))
-        (win (find-window-by-parent window (top-windows))))
+        (input-bar (find-input-bar-by-window window))
+        (win (find-window-by-parent (or child window) (top-windows))))
+    ;;(dformat 0 "(~a, ~a) ~a ~a~%" x y window child)
     (cond
       ((and screen (not child))
        (group-button-press (screen-current-group screen) x y :root)
@@ -581,7 +583,10 @@ the window in it's frame."
       (mode-line
        (run-hook-with-args *mode-line-click-hook* mode-line code x y))
       (win
-       (group-button-press (window-group win) x y win))))
+       (group-button-press (window-group win) x y win))
+      (input-bar
+       (start-bar input-bar code x y))
+      ))
   ;; Pass click to client
   (xlib:allow-events *display* :replay-pointer time))
 

@@ -1,0 +1,739 @@
+;; -*-lisp-*-
+;;
+;; TODO: Wrap desktop-scale function.
+;; TODO: Organize everything into hooks.
+;; TODO: Idea: automatically place newly opened windows somewhere on plane.
+;;       Addition: user toggle whether to automatically pan and focus those windows.
+;; TODO: Keys/commands to resize windows to certain sizes (full/half-screen, etc.)
+;;       This will take shape as a sort-of tiling mode.
+;; TODO: Command to adjust window to certain position.
+;; TODO: Consider regex or template-string method to have live-updating commands.
+;; TODO: Improve window search algorithms.
+;; TODO: UTF-8 support in bar.
+;; TODO: Automatically fill bar above windows with commands.
+;; TODO: Save window bar strings.
+;; TODO: Why do the bars erase all their text sometimes?
+
+(in-package :stumpwm)
+(require 'dbus)
+
+;; Load swank.
+(require 'swank)
+(swank:create-server
+ :port 4005
+ :style swank:*communication-style*
+ :dont-close t)
+
+(setq *mouse-focus-policy* :sloppy)
+(setq *debug-level* 0)
+(redirect-all-output (data-dir-file "debug-output" "txt"))
+(defvar *default-command-string*
+  "[delete] [maximize] [left] [right]")
+
+(defcommand maximize () ()
+  "Maximizes the current window"
+  (float-window-move-resize (current-window)
+                            :x 0
+                            :y 0
+                            :width (- (screen-width (current-screen)) 4)
+                            :height (- (screen-height (current-screen)) 6)))
+
+(defcommand left () ()
+  "Temporary until I implement bar subtitutions"
+  (eval-command (format nil "pan-group ~a ~a"
+                        (screen-width (current-screen))
+                        (screen-height (current-screen)))))
+
+(defcommand right () ()
+  "Temporary until I implement bar subtitutions"
+  (eval-command (format nil "pan-group ~a ~a"
+                        (* -1 (screen-width (current-screen)))
+                        (screen-height (current-screen)))))
+
+;; change the prefix key to something else
+(set-prefix-key (kbd "C-;"))
+
+;; prompt the user for an interactive command. The first arg is an
+;; optional initial contents.
+(defcommand colon1 (&optional (initial "")) (:rest)
+  (let ((cmd (read-one-line (current-screen) "◉ " :initial-input initial)))
+    (when cmd
+      (eval-command cmd t))))
+
+(eval-command "gnewbg-float float" nil)
+(eval-command "gkill" nil)
+
+(define-key *root-map* (kbd "s-h") "pan-group 1920 0")
+(define-key *root-map* (kbd "s-j") "pan-group 0 -1200")
+(define-key *root-map* (kbd "s-k") "pan-group 0 1200")
+(define-key *root-map* (kbd "s-l") "pan-group -1920 0")
+(define-key *root-map* (kbd "s-o") "view-all-in-group")
+
+(define-key *root-map* (kbd ".") "colon")
+
+(defvar *current-scale* 100)
+(defvar *scaled-hook* '(overview-mouse-control))
+
+(defstruct point x y)
+
+(defvar *current-offset* (make-point :x 0 :y 0))
+
+(defstruct view
+  win coords scale)
+
+(defvar *views* (make-array 10))
+(defvar *views-map* nil)
+(define-key *root-map* (kbd "V") "version")
+(define-key *root-map* (kbd "v") '*views-map*)
+
+(defun scale-value (val)
+  (round (* val (/ *current-scale* 100))))
+
+;;(defvar *scaled* nil)
+;; TODO: Make wrapper that makes this easier to work with.
+(defun scale-desktop (amount)
+  (dbus:with-open-bus (bus (dbus:session-server-addresses))
+    (dbus:with-introspected-object (compton bus "/" "com.github.chjj.compton._1_0")
+      (compton "com.github.chjj.compton" "scale" (float (/ amount 100))))))
+
+(defun pan-desktop-visual (x y)
+  (incf (point-x *current-offset*) x)
+  (incf (point-y *current-offset*) y)
+  (dbus:with-open-bus (bus (dbus:session-server-addresses))
+    (dbus:with-introspected-object (compton bus "/" "com.github.chjj.compton._1_0")
+      (compton "com.github.chjj.compton" "offset" x y))))
+
+;; Make smaller.
+(defcommand scale-up (amount) ((:number "Enter scale increase: "))
+  (setq *current-scale* (+ *current-scale* amount))
+  (scale-desktop *current-scale*)
+  ;; We just started scaling, capture the mouse.
+  (if (and (= (- *current-scale* amount) 100) (not (= amount 0)))
+      (run-hook *scaled-hook*)))
+
+;; Make bigger.
+(defcommand scale-down (amount) ((:number "Enter scale decrease: "))
+  (cond ((not (and (= *current-scale* 100) (not (= amount 0))))
+      (setq *current-scale* (- *current-scale* amount))
+      (if (and (= *current-scale* 100) (not (= amount 0)))
+          (ungrab-pointer))
+      (scale-desktop *current-scale*))))
+
+(defcommand reset-scale () ()
+  (setq *current-scale* 100)
+  (scale-desktop *current-scale*))
+
+(define-key *root-map* (kbd "quoteleft") "scale-up 10")
+(define-key *root-map* (kbd "~") "scale-down 10")
+(define-key *root-map* (kbd "@") "reset-scale")
+(define-key *root-map* (kbd "]") "scale-up 100")
+(define-key *root-map* (kbd "[") "scale-down 100")
+
+(defun find-value (val lst)
+  (cond
+    ((null lst) 'value-not-found)
+    ((eq val (car lst)) (cadr lst))
+    (T (find-value val (cddr lst)))))
+
+(defcommand record-view (number) ((:number "View number: "))
+  (let* ((win (current-window))
+        (coords (make-point
+                 :x (window-x win)
+                 :y (window-y win))))
+    (setf (elt *views* (- number 1))
+          (make-view
+           :win win
+           :coords coords
+           :scale *current-scale*))))
+
+(defcommand activate-view (number) ((:number "View number: "))
+  (let* ((view (elt *views* (- number 1)))
+         (win (view-win view))
+         (coords (view-coords view))
+         (cur-win-x (window-x win))
+         (cur-win-y (window-y win)))
+    (pan-group (- (point-x coords) cur-win-x)
+               (- (point-y coords) cur-win-y))
+    (scale-desktop (view-scale view))
+    (setq *current-scale* (view-scale view))
+    (when (> (view-scale view) 100)
+        (run-hook *scaled-hook*))))
+
+(fill-keymap *views-map*
+             (kbd "F1")    "record-view 1"
+             (kbd "F2")    "record-view 2"
+             (kbd "F3")    "record-view 3"
+             (kbd "F4")    "record-view 4"
+             (kbd "F5")    "record-view 5"
+             (kbd "F6")    "record-view 6"
+             (kbd "F7")    "record-view 7"
+             (kbd "F8")    "record-view 8"
+             (kbd "F9")    "record-view 9"
+             (kbd "F10")   "record-view 10"
+             (kbd "1")     "activate-view 1"
+             (kbd "2")     "activate-view 2"
+             (kbd "3")     "activate-view 3"
+             (kbd "4")     "activate-view 4"
+             (kbd "5")     "activate-view 5"
+             (kbd "6")     "activate-view 6"
+             (kbd "7")     "activate-view 7"
+             (kbd "8")     "activate-view 8"
+             (kbd "9")     "activate-view 9"
+             (kbd "0")     "activate-view 10")
+
+#|
+DONE: Implement a basic form of "view."
+Create an array that holds view structs.
+To save a view:
+1.) Record the current window.
+2.) Record its coords.
+3.) Record the current scale.
+
+To activate a view:
+1.) Get the window from the view and its coords.
+2.) Get the saved coords.
+3.) Pan to the difference between those coords.
+4.) Set the scale to the saved scale.
+|#
+
+(defun get-win-bounding-box (min-x min-y max-x max-y list-of-windows)
+  (if (null list-of-windows)
+      (list (list min-x min-y) (list max-x max-y))
+      (let* ((win (car list-of-windows))
+             (win-min-x (window-x win))
+             (win-min-y (window-y win))
+             (win-max-x (+ win-min-x (window-width win)))
+             (win-max-y (+ win-min-y (window-height win))))
+        (cond ((or (null min-x) (null min-y) (null max-x) (null max-y))
+               (setq min-x win-min-x)
+               (setq min-y win-min-y)
+               (setq max-x win-max-x)
+               (setq max-y win-max-y)))
+        (when (<= win-min-x min-x) (setq min-x win-min-x))
+        (when (<= win-min-y min-y) (setq min-y win-min-y))
+        (when (>= win-max-x max-x) (setq max-x win-max-x))
+        (when (>= win-max-y max-y) (setq max-y win-max-y))
+        (get-win-bounding-box min-x min-y max-x max-y (cdr list-of-windows)))))
+
+(defun get-bounding-box-scale (box-width box-height)
+  (let* ((width (max box-width (screen-width (current-screen))))
+         (height (max box-height (screen-height (current-screen))))
+         (scale-width (/ width (screen-width (current-screen))))
+         (scale-height (/ height (screen-height (current-screen))))
+         (final-scale (* 100 (max scale-width scale-height))))
+    ;;(print (list width height scale-width scale-height))
+    final-scale))
+
+(defcommand echo-bounding-box () ()
+  (echo (get-win-bounding-box nil nil nil nil (group-windows (current-group)))))
+
+(defcommand view-all-in-group () ()
+  (let* ((group-extents (get-win-bounding-box nil nil nil nil (group-windows (current-group))))
+         (min-coords (first group-extents))
+         (max-coords (second group-extents))
+         (min-x (first min-coords))
+         (min-y (second min-coords))
+         (max-x (first max-coords))
+         (max-y (second max-coords))
+         (scale (get-bounding-box-scale (- max-x min-x) (- max-y min-y))))
+    (cond ((or (> (- max-x min-x) (screen-width (current-screen)))
+               (> (- max-y min-y) (screen-height (current-screen))))
+           (pan-group (- 0 min-x)
+                      (- 0 min-y))
+           (setq *current-scale* scale)
+           (scale-desktop scale)
+           (run-hook *scaled-hook*)))))
+
+(defun zoom-to-window (win align)
+  (let* ((extents (get-win-bounding-box nil nil nil nil (list win)))
+         (min-coords (first extents))
+         (max-coords (second extents))
+         (min-x (first min-coords))
+         (min-y (second min-coords))
+         (max-x (first max-coords))
+         (max-y (second max-coords))
+         (scale (get-bounding-box-scale (- max-x min-x) (- max-y min-y)))
+         (offset-x 0)
+         (offset-y 0))
+    (cond
+      ((equal align 'left)
+       (setq offset-x 0)
+       (setq offset-y 0))
+      ((equal align 'center)
+       (if (= scale 100)
+           (progn
+             (setq offset-x (round (/ (- (screen-width (current-screen)) (- max-x min-x)) 2)))
+             (setq offset-y (round (/ (- (screen-height (current-screen)) (- max-y min-y)) 2))))
+           (progn
+             (setq offset-x (- min-x max-x))
+             (setq offset-y (- min-y max-y))))))
+    (pan-group (- offset-x min-x)
+               (- offset-y min-y))
+    (setq *current-scale* scale)
+    (scale-desktop scale)
+    #|(if (> scale 100) (run-hook *scaled-hook*))|#))
+
+(defun find-window-to-side (cur-coord get-coord compare closest-win current-best lst)
+  (if (null lst)
+      (if (funcall compare (funcall get-coord closest-win) cur-coord)
+          (first closest-win)
+          nil)
+      (let ((cur-dist (abs (- cur-coord (funcall get-coord (car lst))))))
+        (if (or (equal current-best nil) (< cur-dist current-best))
+            (progn
+              (setq current-best cur-dist)
+              (setq closest-win (car lst))))
+        (find-window-to-side cur-coord get-coord compare closest-win current-best (cdr lst)))))
+
+;; TODO: Make into structure.
+(defun make-win-data-structure (win)
+  (let* ((extents (get-win-bounding-box nil nil nil nil (list win)))
+         (min-coords (first extents))
+         (max-coords (second extents))
+         (min-x (first min-coords))
+         (min-y (second min-coords))
+         (max-x (first max-coords))
+         (max-y (second max-coords)))
+    (list win (list min-x min-y) (list max-x max-y))))
+
+(defun filter-outside-boundaries (min max comp1 comp2 lst)
+  (remove-if (lambda (x) (or (< (funcall comp1 x) min)
+                             (> (funcall comp2 x) max)))
+             lst))
+
+(defun filter-outside-line (line comp1 comp2 lst)
+  (remove-if-not (lambda (x)
+                   (and (> line (funcall comp1 x))
+                        (< line (funcall comp2 x))))
+                 lst))
+
+;; TODO: Pan to window.
+;; Take the direction and find the window with the nearest
+;; (x, y) coordinates in that direction.
+;; Move to that window (centered or on left).
+(defun pan-to-window (win dir)
+  (let* ((extents (get-win-bounding-box nil nil nil nil (list win)))
+         (min-coords (first extents))
+         (max-coords (second extents))
+         (min-x (first min-coords))
+         (min-y (second min-coords))
+         (max-x (first max-coords))
+         (max-y (second max-coords))
+         (get-min-x #'(lambda (x) (first (second x))))
+         (get-min-y #'(lambda (x) (second (second x))))
+         (get-max-x #'(lambda (x) (first (third x))))
+         (get-max-y #'(lambda (x) (second (third x))))
+         (compare nil)
+         (get-coord nil)
+         (val 0)
+         (x-median (/ (- max-x min-x) 2))
+         (y-median (/ (- max-y min-y) 2))
+         (win nil)
+         (win-list (map 'list #'make-win-data-structure
+                        (remove (current-window) (group-windows (current-group)))))
+         (win-list-filtered nil))
+    ;; TODO: Should use structure.
+    (switch (dir :test #'equal)
+      ("up"
+       (setq compare #'<)
+       (setq get-coord get-max-y)
+       (setq win-list-filtered (filter-outside-line x-median get-min-x get-max-x win-list))
+       ;;(setq win-list-filtered (filter-outside-boundaries min-x max-x get-min-x get-max-x win-list))
+       (setq val min-y))
+      ("down"
+       (setq compare #'>)
+       (setq get-coord get-min-y)
+       (setq win-list-filtered (filter-outside-line x-median get-min-x get-max-x win-list))
+       ;;(setq win-list-filtered (filter-outside-boundaries min-x max-x get-min-x get-max-x win-list))
+       (setq val max-y))
+      ("left"
+       (setq compare #'<)
+       (setq get-coord get-max-x)
+       (setq win-list-filtered (filter-outside-line y-median get-min-y get-max-y win-list))
+       ;;(setq win-list-filtered (filter-outside-boundaries min-y max-y get-min-y get-max-y win-list))
+       (setq val min-x))
+      ("right"
+       (setq compare #'>)
+       (setq get-coord get-min-x)
+       (setq win-list-filtered (filter-outside-line y-median get-min-y get-max-y win-list))
+       ;;(setq win-list-filtered (filter-outside-boundaries min-y max-y get-min-y get-max-y win-list))
+       (setq val max-x)))
+    (print win-list-filtered)
+    (echo win-list-filtered)
+    (setq win (find-window-to-side val get-coord compare nil nil
+                                   win-list-filtered))
+    ;; First heuristic: search within windows touching a line running
+    ;; through the middle of the window.
+    (if (not (null win))
+        (progn
+          (zoom-to-window win 'left)
+          (focus-window win t)
+          :done)
+        (progn
+          ;; Perform a wider search that simply finds the closest window.
+          (setq win (find-window-to-side val get-coord compare nil nil win-list))
+          (if (not (null win))
+              (progn
+                (zoom-to-window win 'left)
+                (focus-window win t)
+                :done)
+              "No window in that direction.")))))
+
+(defcommand move-to-window (dir) ((:string "Enter direction: "))
+  (if (or (equal dir "up") (equal dir "down") (equal dir "left") (equal dir "right"))
+      (let ((ret nil))
+        (setq ret (pan-to-window (group-current-window (current-group)) dir))
+        (if (not (equal ret :done))
+            (echo ret)))
+      (echo "Invalid direction. Allowed directions: up, down, left, right.")))
+
+;; TODO: Move screen when the window is dragged to the side.
+;; This will need timing to work well.
+
+;; TODO: Visual mode to select and move windows.
+
+(defun list-to-string (lst)
+  (format nil "~{~A~}" lst))
+
+(defvar *zoom-map*
+  (list
+   (list (kbd "M-h") (list-to-string (list "pan-group " (+ 0 (head-width (current-head))) " " 0)))
+   (list (kbd "M-j") (list-to-string (list "pan-group " 0 " " (- 0 (head-height (current-head))))))
+   (list (kbd "M-k") (list-to-string (list "pan-group " 0 " " (+ 0 (head-height (current-head))))))
+   (list (kbd "M-l") (list-to-string (list "pan-group " (- 0 (head-width (current-head))) " " 0)))
+   (list (kbd "M-H") "move-to-window left")
+   (list (kbd "M-J") "move-to-window down")
+   (list (kbd "M-K") "move-to-window up")
+   (list (kbd "M-L") "move-to-window right"))
+   "Keyamp set when in a zooming state for interacting with and manipulating windows.")
+
+
+#|(fill-keymap *zoom-map*
+             (kbd "g") '*groups-map*
+             (kbd "v") "describe-variable"
+             (kbd "f") "describe-function"
+             (kbd "k") "describe-key"
+             (kbd "c") "describe-command"
+             (kbd "w") "where-is")|#
+
+;;(xlib:grab-button (screen-root (current-screen))
+;;                  1
+;;                  '(:button-1-motion)
+;;                  :modifiers '(:mod-1))
+
+;;(xlib:ungrab-button (screen-root (current-screen))
+;;                  1
+;;                  :modifiers '(:mod-1))
+
+;;(run-shell-command "export $(dbus-launch)")
+
+;;(defun notify-example ()
+;;  (with-open-bus (bus (dbus:parse-server-addresses-string "unix:abstract=/tmp/dbus-KN2osnrWu1,guid=52b6da33dcfbcb2da3fe449859501436"))
+;;    (with-introspected-object (notifications bus "/org/freedesktop/Notifications" "org.freedesktop.Notifications")
+;;      (notifications "org.freedesktop.Notifications" "Notify"
+;;                     "Test" 0 "" "Test" "This is a test; I repeat, this is a test." '() '() -1))))
+
+(defun get-window-at-point (x y list-of-windows)
+  (let ((win (car list-of-windows)))
+    (cond
+      ((null list-of-windows) 'root-window)
+      ((and (>= x (window-x win))
+            (>= y (window-y win))
+            (<= x (+ (window-x win) (window-width win)))
+            (<= y (+ (window-y win) (window-height win))))
+       (car list-of-windows))
+      (T (get-window-at-point x y (cdr list-of-windows))))))
+
+(defcommand query-point (x y) ((:number "Enter x: ") (:number "Enter y: "))
+    (echo (get-window-at-point
+     (round (/ x
+               (/ *current-scale* 100)))
+     (round (/ y
+               (/ *current-scale* 100)))
+     (group-windows (current-group)))))
+
+#|
+;; BROKE
+(defun apply-minor-mode (func map-layer keymaps)
+  (funcall #'func map-layer (car keymaps))
+  (apply-minor-mode map-layer (cdr keymaps)))
+
+(defun toggle-zoom-minor-mode (enable)
+  (defvar set-key nil)
+  (if enable
+      (setq set-key define-key)
+      (setq set-key undefine key))
+  (apply-minor-mode set-key *top-map* *zoom-map*))|#
+
+(defun toggle-zoom-minor-mode (enable)
+  (if enable
+      (map 'nil (lambda (zoom-binding) (define-key
+                                      *top-map*
+                                      (first zoom-binding)
+                                    (second zoom-binding))) *zoom-map*)
+      (map 'nil (lambda (zoom-binding) (undefine-key
+                                      *top-map*
+                                      (first zoom-binding))) *zoom-map*)))
+
+#|(defun toggle-zoom-minor-mode ()
+  ;;(defmacro set-ey)
+      (undefine-key *top-map* (kbd "h") (list-to-string (list "pan-group " (+ 0 (head-width (current-head))) " " 0)))
+      (undefine-key *top-map* (kbd "j") (list-to-string (list "pan-group " 0 " " (- 0 (head-height (current-head))))))
+      (undefine-key *top-map* (kbd "k") (list-to-string (list "pan-group " 0 " " (+ 0 (head-height (current-head))))))
+      (undefine-key *top-map* (kbd "l") (list-to-string (list "pan-group " (- 0 (head-width (current-head))) " " 0))))|#
+
+(defun pan-centered-closure ()
+  (let ((offset-x 0) (offset-y 0))
+    (lambda ()
+      (let* ((current-scale (/ *current-scale* 100))
+             (width (* (head-width (current-head)) current-scale))
+             (height (* (head-height (current-head)) current-scale))
+             (cur-offset-x (round (-
+                                   (/ width 2)
+                                   (/ width
+                                      (* current-scale 2)))))
+             (cur-offset-y (round (-
+                                   (/ height 2)
+                                   (/ height
+                                      (* current-scale 2))))))
+        ;;(echo (list (- cur-offset-x offset-x) (- cur-offset-y offset-y)))
+        (pan-group (- cur-offset-x offset-x)
+                   (- cur-offset-y offset-y))
+        (setq offset-x cur-offset-x)
+        (setq offset-y cur-offset-y)))))
+
+(defvar pan-centered (pan-centered-closure))
+
+;; (prog1 nil (ungrab-pointer) (toggle-zoom-minor-mode nil))
+
+(defun check-ungrab ()
+  (echo "ungrabbing pointer")
+  (ungrab-pointer))
+
+(defun overview-mouse-control ()
+  (toggle-zoom-minor-mode t)
+  (let ((op nil) (cur-win nil) (prev-x 0) (prev-y 0) (win-x-diff 0) (win-y-diff 0))
+   (labels ((overview-mouse-event-handler
+               (&rest event-slots &key event-key &allow-other-keys)
+             ;; MASKS (in event-slots):
+             ;; left : 256
+             ;; Middle : 512
+             ;; Right: 1024
+             ;; Scroll up: 2048
+             ;; Scroll down: 4096
+             ;;(if (= *current-scale* 100)
+             ;;    (ungrab-pointer))
+              (cond
+                ((= *current-scale* 100) :done)
+                (T
+                 (case event-key
+                   (:button-press
+                    (setq prev-x (getf event-slots :x))
+                    (setq prev-y (getf event-slots :y))
+                    (setq cur-win
+                          (get-window-at-point
+                           (+ (round (scale-value (getf event-slots :x)))
+                              (point-x *current-offset*))
+                           (+ (round (scale-value (getf event-slots :y)))
+                              (point-y *current-offset*))
+                           (group-windows (current-group))))
+                    (cond ((and (not (equal cur-win nil)) (not (equal cur-win 'root-window)))
+                           (setq win-x-diff (- (scale-value (getf event-slots :x))
+                                               (window-x cur-win)))
+                           (setq win-y-diff (- (scale-value (getf event-slots :y))
+                                               (window-y cur-win)))))
+                    (let ((mask (find-value :CODE event-slots)))
+                      (case mask
+                        (1 (setq op 'move) t)
+                        (2 (zoom-to-window cur-win 'left) (focus-window cur-win) t)
+                        (3 (setq op 'resize) t)
+                        (4 (scale-down (min 6 (- *current-scale* 100)))
+                         ;;(funcall pan-centered)
+                         (if (= *current-scale* 100)
+                             :done
+                             t))
+                        (5 (scale-up 6) #|(funcall pan-centered)|# t))))
+                   (:button-release
+                    (unless (and (= 0 (point-x *current-offset*))
+                                 (= 0 (point-y *current-offset*)))
+                      (pan-desktop-visual 0 0)
+                      (pan-group (point-x *current-offset*)
+                                 (point-y *current-offset*))
+                      (setf (point-x *current-offset*) 0)
+                      (setf (point-y *current-offset*) 0))
+                    (setq op nil)
+                    (setq cur-win nil)
+                    (setq win-x-diff 0)
+                    (setq win-y-diff 0)
+                    t)
+                   (:motion-notify
+                    (let ((cur-x (getf event-slots :x))
+                          (cur-y (getf event-slots :y))
+                          (diff-x (- (getf event-slots :x) prev-x))
+                          (diff-y (- (getf event-slots :y) prev-y)))
+                      (cond
+                        ((equal cur-win nil) t)
+                        ((equal cur-win 'root-window)
+                         ;; Multiply by two to make motion easier.
+                         ;;
+                         (pan-desktop-visual
+                          (round (* (* 2 diff-x) (/ *current-scale* 100)))
+                          (round (* (* 2 diff-y) (/ *current-scale* 100)))))
+                        (T
+                         (case op
+                           (move (float-window-move-resize
+                                  cur-win
+                                  :x (- (scale-value cur-x) win-x-diff)
+                                  :y (- (scale-value cur-y) win-y-diff)))
+                           (resize (float-window-move-resize
+                                    cur-win
+                                    :width (+ (window-width cur-win) (scale-value diff-x))
+                                    :height (+ (window-height cur-win) (scale-value diff-y)))))))
+                      (setq prev-x cur-x)
+                      (setq prev-y cur-y))
+                    t)
+                   ;; We need to eat these events or they'll ALL
+                   ;; come blasting in later. Also things start
+                   ;; lagging hard if we don't (on clisp anyway).
+                   (:configure-notify t)
+                   (:exposure t)
+                   (:key-press
+                    (let ((eventfn (gethash :key-press *event-fn-table*)))
+                      (apply eventfn event-slots))
+                    t)
+                   (t nil))))))
+    (xlib:grab-pointer (screen-root (current-screen))
+                       '(:button-press
+                         :button-release
+                         :pointer-motion))
+    (unwind-protect
+         ;; Wait until the mouse button is released
+         (loop for ev = (xlib:process-event *display*
+                                            :handler #'overview-mouse-event-handler
+                                            :timeout nil
+                                            :discard-p t)
+               until (eq ev :done))
+      (ungrab-pointer)))))
+
+;; TODO State mask
+;; (multiple-value-bind (relx rely same-screen-p child state-mask)
+;;    (xlib:query-pointer (window-parent window))
+(defun root-window-click (screen button x y)
+  (declare (ignore button))
+  (let ((prev-x x) (prev-y y) (zoomed nil))
+    (labels ((pan-screen-event-handler
+                 (&rest event-slots &key event-key &allow-other-keys)
+               ;; TODO: Use this for modifier support.
+               ;; Returns (e.g.): (BUTTON-1 MOD4)
+               ;;(echo (xlib:make-state-keys (find-value :STATE event-slots)))
+               (let ((mask (find-value :CODE event-slots)))
+                 (case mask
+                   ;; TODO: Pan desktop (plus move window?).
+                   (1 'root-window-click-left)
+                   ;; TODO: Reset scale?
+                   (2 'root-window-click-middle)
+                   ;; TODO: Check window position and move it according to scale.
+                   (3 'root-window-click-right)
+                   (4 (scale-down 6) #|(funcall pan-centered)|# (setq zoomed t))
+                   (5 (scale-up 6) #|(funcall pan-centered)|# (setq zoomed t))))
+
+               (if (not zoomed)
+                   (case event-key
+                     (:button-release :done)
+                     (:motion-notify
+                      (let ((cur-x (getf event-slots :x))
+                            (cur-y (getf event-slots :y)))
+                        ;; Multiply by two to make motion easier.
+                        (pan-group (* 2 (- cur-x prev-x))
+                                   (* 2 (- cur-y prev-y)))
+                        (setq prev-x cur-x)
+                        (setq prev-y cur-y))
+                      t)
+                     ;; We need to eat these events or they'll ALL
+                     ;; come blasting in later. Also things start
+                     ;; lagging hard if we don't (on clisp anyway).
+                     (:configure-notify t)
+                     (:exposure t)
+                     (t nil))
+                   :done)))
+      (xlib:grab-pointer (screen-root screen) '(:button-release :pointer-motion))
+      (unwind-protect
+           ;; Wait until the mouse button is released
+           (loop for ev = (xlib:process-event *display*
+                                              :handler #'pan-screen-event-handler
+                                              :timeout nil
+                                              :discard-p t)
+                 until (eq ev :done))
+        (ungrab-pointer)))))
+
+(add-hook *root-click-hook* 'root-window-click)
+;;(remove-hook *root-click-hook* 'root-window-click)
+
+;; Read some doc
+;;(define-key *root-map* (kbd "d") "exec gv")
+;; Browse somewhere
+;;(define-key *root-map* (kbd "b") "colon1 exec firefox http://www.")
+;; Ssh somewhere
+;;(define-key *root-map* (kbd "C-s") "colon1 exec xterm -e ssh ")
+;; Lock screen
+;;(define-key *root-map* (kbd "C-l") "exec xlock")
+
+;; Web jump (works for Google and Imdb)
+;;(defmacro make-web-jump (name prefix)
+;;  `(defcommand ,(intern name) (search) ((:rest ,(concatenate 'string name " search: ")))
+;;    (substitute #\+ #\Space search)
+;;    (run-shell-command (concatenate 'string ,prefix search))))
+
+;;(make-web-jump "google" "firefox http://www.google.fr/search?q=")
+;;(make-web-jump "imdb" "firefox http://www.imdb.com/find?q=")
+
+;; C-t M-s is a terrble binding, but you get the idea.
+;;(define-key *root-map* (kbd "M-s") "google")
+;;(define-key *root-map* (kbd "i") "imdb")
+
+;; Message window font
+(set-font "-xos4-terminus-medium-r-normal--14-140-72-72-c-80-iso8859-15")
+
+;;; Define window placement policy...
+
+;; Clear rules
+(clear-window-placement-rules)
+
+;; Last rule to match takes precedence!
+;; TIP: if the argument to :title or :role begins with an ellipsis, a substring
+;; match is performed.
+;; TIP: if the :create flag is set then a missing group will be created and
+;; restored from *data-dir*/create file.
+;; TIP: if the :restore flag is set then group dump is restored even for an
+;; existing group using *data-dir*/restore file.
+;;(define-frame-preference "Default"
+;;j  ;; frame raise lock (lock AND raise == jumpto)
+;;  (0 t nil :class "Konqueror" :role "...konqueror-mainwindow")
+;;  (1 t nil :class "XTerm"))
+
+
+;;(defvar *global-bar* (make-input-bar))
+
+#|(defcommand start-global-bar () (:rest)
+  "Read a command from the user. @var{initial-text} is optional. When
+supplied, the text will appear in the prompt."
+  (let ((cmd (completing-bar-read *global-bar* ": " (all-commands))))
+    ;;(unless cmd
+    ;;  (throw 'error :abort))
+    (when (plusp (length cmd))
+      ;;(eval-command cmd t)
+      (echo cmd))))|#
+
+#|(defcommand start-bar (bar) (:rest)
+  "Read a command from the user. @var{initial-text} is optional. When
+supplied, the text will appear in the prompt."
+  (let ((cmd (completing-bar-read bar ": " (all-commands))))
+    (unless cmd
+      (throw 'error :abort))
+    (when (plusp (length cmd))
+      ;;(eval-command cmd t)
+      (echo cmd))))|#
+
+
+(run-shell-command "compton --dbus")
+(run-shell-command "feh --bg-center ~/Pictures/background.png")

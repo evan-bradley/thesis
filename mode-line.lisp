@@ -214,16 +214,23 @@ timer.")
 
 (defun make-mode-line-window (screen)
   "Create a window suitable for a modeline."
-  (xlib:create-window
-   :parent (screen-root screen)
-   :x 0 :y 0 :width 1 :height 1
-   :background (alloc-color screen *mode-line-background-color*)
-   :border (alloc-color screen *mode-line-border-color*)
-   :border-width *mode-line-border-width*
-   ;; You can click the modeline
-   :event-mask (xlib:make-event-mask :button-press :exposure)
-   ;; these windows are not controlled by the window manager
-   :override-redirect :on))
+  (let ((win (xlib:create-window
+              :parent (screen-root screen)
+              :x 0 :y 0 :width 1 :height 1
+              :background (alloc-color screen *mode-line-background-color*)
+              :border (alloc-color screen *mode-line-border-color*)
+              :border-width *mode-line-border-width*
+              ;; You can click the modeline
+              :event-mask (xlib:make-event-mask :button-press :exposure)
+              ;; these windows are not controlled by the window manager
+              :override-redirect :on)))
+    (xlib:change-property
+     win
+     :_NET_WM_WINDOW_TYPE
+     (list (xlib:find-atom *display* :_NET_WM_WINDOW_TYPE_DESKTOP))
+     :atom
+     32)
+    win))
 
 (defun make-mode-line-gc (window screen)
   (xlib:create-gcontext

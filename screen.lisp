@@ -469,6 +469,18 @@ FOCUS-WINDOW is an extra window used for _NET_SUPPORTING_WM_CHECK."
             (screen-heads screen) (make-screen-heads screen screen-root)
             (tile-group-frame-tree group) (copy-heads screen)
             (tile-group-current-frame group) (first (tile-group-frame-tree group)))
+      #|(xlib:change-property
+       (screen-input-window screen)
+       :_NET_WM_WINDOW_TYPE
+       (list (xlib:find-atom *display* :_NET_WM_WINDOW_TYPE_DESKTOP))
+       :atom
+       32)|#
+      (xlib:change-property
+       message-window
+       :_NET_WM_WINDOW_TYPE
+       (list (xlib:find-atom *display* :_NET_WM_WINDOW_TYPE_DESKTOP))
+       :atom
+       32)
       ;; The focus window is mapped at all times
       (xlib:map-window (screen-focus-window screen))
       (xlib:map-window (screen-key-window screen))

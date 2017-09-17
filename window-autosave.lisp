@@ -632,6 +632,7 @@ and bottom_end_x."
   (find-free-number (mapcar 'window-number (group-windows group))))
 
 (defun reparent-window (screen window)
+  (message "===================== REPARENTING =========================")
   ;; apparently we need to grab the server so the client doesn't get
   ;; the mapnotify event before the reparent event. that's what fvwm
   ;; says.
@@ -641,7 +642,7 @@ and bottom_end_x."
                          :x (xlib:drawable-x (window-xwin window))
                          :y (xlib:drawable-y (window-xwin window))
                          :width (window-width window)
-                         :height (window-height window)
+                         :height (+ (window-height window) 80)
                          :background (if (eq (window-type window) :normal)
                                          (screen-win-bg-color screen)
                                          :none)
@@ -651,15 +652,14 @@ and bottom_end_x."
                          :depth (xlib:drawable-depth xwin)
                          :visual (xlib:window-visual-info xwin)
                          :colormap (xlib:window-colormap xwin)))
-         (window-input-bar (make-input-bar :initial-input *default-command-string*)))
+         (window-input-bar (make-input-bar)))
     (unless (eq (xlib:window-map-state (window-xwin window)) :unmapped)
       (incf (window-unmap-ignores window)))
+    (echo master-window)
     (xlib:reparent-window (input-bar-window window-input-bar) master-window 0 0)
-    (setf (xlib:drawable-width (input-bar-window window-input-bar)) (window-width window))
     ;;(make-input-bar :parent master-window)
-    (xlib:reparent-window (window-xwin window) master-window 0 0)
-    ;;(setf (xlib:drawable-y (window-xwin window)) 40)
-    ;;(xwin-grab-buttons master-window)
+    (xlib:reparent-window (window-xwin window) master-window 20 80)
+    (xwin-grab-buttons master-window)
     ;;     ;; we need to update these values since they get set to 0,0 on reparent
     ;;     (setf (window-x window) 0
     ;;          (window-y window) 0)

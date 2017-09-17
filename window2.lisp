@@ -11,7 +11,7 @@
    (last-y :initform 0 :accessor float-window-last-y)))
 
 (defvar *float-window-border* 1)
-(defvar *float-window-title-height* 21)
+(defvar *float-window-title-height* 10)
 
 ;; some book keeping functions
 (defmethod (setf window-x) :before (val (window float-window))
@@ -49,17 +49,6 @@
                 (xlib:drawable-height xwin) height
                 (window-height win) height))))))
 
-(defun pan-windows (group &key x y)
-  (map 'list #'(lambda (win)
-                 (let ((new-x (if (null x)
-                                 (window-x win)
-                                 (+ x (window-x win))))
-                       (new-y (if (null y)
-                                 (window-y win)
-                                 (+ y (window-y win)))))
-                   (float-window-move-resize win :x new-x :y new-y)))
-       (group-windows group)))
-
 (defmethod update-decoration ((window float-window))
   (let ((group (window-group window)))
     (setf (xlib:window-background (window-parent window))
@@ -88,6 +77,17 @@
                          (within-frame-p bottom left head)
                          (within-frame-p bottom right head)))
                    heads)
+          ;; Didn't find any head, so give up and return the first one
+          ;; in the list.
+          (first heads)))))
+
+(defmethod window-visible-p ((win float-window))
+  (eql (window-state win) +normal-state+))
+
+(defmethod (setf window-fullscreen) :after (val (window float-window))
+  (with-accessors ((last-x float-window-last-x)
+                   (last-y float-window-last-y)
+                   (last-width float-window-last-width)
           ;; Didn't find any head, so give up and return the first one
           ;; in the list.
           (first heads)))))
@@ -216,7 +216,6 @@
   )
 
 (defmethod group-button-press (group x y (window float-window))
-  (dformat 0 "(~a, ~a) ~a ~%" x y window)
   (let ((screen (group-screen group))
         (initial-width (xlib:drawable-width (window-parent window)))
         (initial-height (xlib:drawable-height (window-parent window))))
@@ -256,17 +255,6 @@
                                (setf (xlib:drawable-x parent) (- (getf event-slots :x) relx)
                                      (xlib:drawable-y parent) (- (getf event-slots :y) rely)))
                               ((find :button-3 (xlib:make-state-keys state-mask))
-                               (let ((w (- (getf event-slots :x)
-                                           (xlib:drawable-x parent)))
-                                     (h (- (getf event-slots :y)
-                                           (xlib:drawable-y parent)
-                                           *float-window-title-height*)))
-                                 ;; Don't let the window become too small
-                                 (float-window-move-resize window
-                                                           :width (max w *min-frame-width*)
-                                                           :height (max h *min-frame-height*)))))))
-                        t)
-                       ;; We need to eat these events or they'll ALL
                        ;; come blasting in later. Also things start
                        ;; lagging hard if we don't (on clisp anyway).
                        (:configure-notify t)
@@ -305,17 +293,3 @@
 (defcommand gnewbg-float (name) ((:rest "Group Name: "))
   "Create a floating window group with the specified name, but do not switch to it."
   (add-group (current-screen) name :background t :type 'float-group))
-
-(defvar *pan-offset-x* 0)
-(defvar *pan-offset-y* 0)
-(defcommand pan-group (x y)
-  ((:number "Change in x: ")
-   (:number "Change in y: "))
-  "Pan group a specified number of pixels in each direction"
-  (setq *pan-offset-x* (+ *pan-offset-x* x))
-  (setq *pan-offset-y* (+ *pan-offset-y* y))
-  (pan-windows (current-group) :x x :y y))
-
-;;(defcommand float-window-alter (win &key x y width height) ((:rest "Window (, x, y, width, height): "))
-;;  "Create a floating window group with the specified name, but do not switch to it."
-;;  (float-window-move-resize win :x x :y y :width width :height height))

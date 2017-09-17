@@ -517,11 +517,11 @@ user aborted."
         ;; this fancy footwork lets us grab the backtrace from where the
         ;; error actually happened.
         (restart-case
-            (handler-bind 
+            (handler-bind
                 ((error (lambda (c)
                           (invoke-restart 'eval-command-error
-                                          (format nil "^B^1*Error In Command '^b~a^B': ^n~A~a" 
-                                                  cmd c (if *show-command-backtrace* 
+                                          (format nil "^B^1*Error In Command '^b~a^B': ^n~A~a"
+                                                  cmd c (if *show-command-backtrace*
                                                             (backtrace-string) ""))))))
               (parse-and-run-command cmd))
           (eval-command-error (err-text)

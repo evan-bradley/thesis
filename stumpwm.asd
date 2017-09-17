@@ -15,7 +15,8 @@
   :depends-on (#:alexandria
                #:cl-ppcre
                #:clx
-               #:sb-posix)
+               #:sb-posix
+               #:dbus)
   :components ((:file "package")
                (:file "primitives")
                (:file "wrappers")
@@ -25,6 +26,7 @@
                (:file "keytrans")
                (:file "kmap")
                (:file "input")
+               (:file "standalone-input")
                (:file "core")
                (:file "command")
                (:file "menu")
