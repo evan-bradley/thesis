@@ -42,13 +42,13 @@
   "Temporary until I implement bar subtitutions"
   (eval-command (format nil "pan-group ~a ~a"
                         (screen-width (current-screen))
-                        (screen-height (current-screen)))))
+                        0)))
 
 (defcommand right () ()
   "Temporary until I implement bar subtitutions"
   (eval-command (format nil "pan-group ~a ~a"
                         (* -1 (screen-width (current-screen)))
-                        (screen-height (current-screen)))))
+                        0)))
 
 ;; change the prefix key to something else
 (set-prefix-key (kbd "C-;"))

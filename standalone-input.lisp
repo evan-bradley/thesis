@@ -273,7 +273,8 @@ match with an element of the completions."
   (let ((input (input-bar-input-line bar))
         (key (list :type :button-press :x x :y y :code code)))
     (when (and code x y)
-      (process-key bar prompt input key))
+      (catch :abort
+        (process-key bar prompt input key)))
     (let ((line (read-one-bar-line bar prompt input :require-match require-match)))
       (when line (string-trim " " line)))))
 
@@ -303,7 +304,8 @@ match with an element of the completions."
               (input-bar-goto-char input pos)))
          (2
           (unless (eq cmd nil)
-            (eval-command cmd t)))
+            (eval-command cmd t)
+            (throw :abort nil)))
          (3 ;; TODO: Deduplicate this.
           (if (< (getf key :x) 23)
               (group-button-press
@@ -688,7 +690,8 @@ functions are passed this structure as their first argument."
     :done))
 
 (defun input-bar-search-command (input pos)
-  (unless (string-equal (input-bar-line-string input) "")
+  (unless (or (string-equal (input-bar-line-string input) "")
+              (> pos (length (input-bar-line-string input))))
     (let* ((p1 (position-if (lambda (x) (string-equal x "[")) (input-bar-line-string input) :end pos :from-end t))
            (p2 (and p1 (position-if (lambda (x) (string-equal x "]")) (input-bar-line-string input) :start pos))))
       (if (and (numberp p1) (numberp p2))
