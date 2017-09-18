@@ -112,6 +112,11 @@
                       (update-mode-lines screen))
                (dformat 1 "Invalid configuration! ~S~%" new-heads))))))))
 
+(define-stump-event-handler :map-notify (window)
+  (let ((input-bar (find-input-bar-by-window window)))
+    (when input-bar
+      (draw-input-bar-bucket input-bar ": " (input-bar-input-line input-bar)))))
+
 (define-stump-event-handler :map-request (parent send-event-p window)
   (unless send-event-p
     ;; This assumes parent is a root window and it should be.
@@ -140,7 +145,9 @@
          t)
         (t
          (xlib:with-server-grabbed (*display*)
-           (let ((window (process-mapped-window screen window)))
+           (let* ((window (process-mapped-window screen window))
+                 (win-bar (window-bar window)))
+             (draw-input-bar-bucket win-bar ": " (input-bar-input-line win-bar))
              (group-raise-request (window-group window) window :map))))))))
 
 (define-stump-event-handler :unmap-notify (send-event-p event-window window #|configure-p|#)
@@ -579,8 +586,7 @@ the window in it's frame."
     (cond
       ((and screen (not child))
        (group-button-press (screen-current-group screen) x y :root)
-       (run-hook-with-args *root-click-hook* screen code x y))
-      (mode-line
+       (run-hook-with-args *root-click-hook* screen code x y)) (mode-line
        (run-hook-with-args *mode-line-click-hook* mode-line code x y))
       (win
        (group-button-press (window-group win) x y win))

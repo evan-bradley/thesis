@@ -300,7 +300,7 @@ The action is to call FUNCTION with arguments ARGS."
   "Parse an X11 DISPLAY string and return the host and display from it."
   (ppcre:register-groups-bind (protocol host ('parse-integer display screen))
 			      ("^(?:(.*?)/)?(.*?)?:(\\d+)(?:\\.(\\d+))?" display :sharedp t)
-    (values 
+    (values
      ;; clx doesn't like (vector character *)
      (coerce (or host "")
 	     '(simple-array character (*)))

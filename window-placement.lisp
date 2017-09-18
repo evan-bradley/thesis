@@ -6,6 +6,7 @@
   "Build a window for XWIN"
   (make-instance 'window
    :xwin xwin
+   :bar (make-input-bar :initial-input *default-command-string*)
    :width (xlib:drawable-width xwin) :height (xlib:drawable-height xwin)
    :x (xlib:drawable-x xwin) :y (xlib:drawable-y xwin)
    :title (xwin-name xwin)

@@ -8,11 +8,20 @@
 ;;       This will take shape as a sort-of tiling mode.
 ;; TODO: Command to adjust window to certain position.
 ;; TODO: Consider regex or template-string method to have live-updating commands.
+;;       Look into StumpWM timers for this.
 ;; TODO: Improve window search algorithms.
 ;; TODO: UTF-8 support in bar.
-;; TODO: Automatically fill bar above windows with commands.
+;; DONE: Automatically fill bar above windows with commands.
 ;; TODO: Save window bar strings.
-;; TODO: Why do the bars erase all their text sometimes?
+;; DONE: Why do the bars erase all their text sometimes?
+;; TODO: Properly size bar on top of application.
+;; TODO: Improve styling (Change orange wrap-around to another color, etc).
+;; TODO: Next/previous window functions.
+;; TODO: Properly kill windows after "delete"
+;; TODO: Take everything from .stumpwmrc and put into proper files.
+;; TODO: Fill the bar with spaces to allow for typing anywhere.
+;;       Delete spaces on the end to keep it even, and fill it with spaces when
+;;       words are deleted.
 
 (in-package :stumpwm)
 (require 'dbus)
