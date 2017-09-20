@@ -115,7 +115,7 @@
 (define-stump-event-handler :map-notify (window)
   (let ((input-bar (find-input-bar-by-window window)))
     (when input-bar
-      (draw-input-bar-bucket input-bar ": " (input-bar-input-line input-bar)))))
+      (draw-input-bar-bucket input-bar "λ " (input-bar-input-line input-bar)))))
 
 (define-stump-event-handler :map-request (parent send-event-p window)
   (unless send-event-p

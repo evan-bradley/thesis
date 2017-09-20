@@ -36,7 +36,7 @@
           completing-bar-read))
 
 (defstruct input-bar-line
-  string position selection history history-bk password)
+  string position selection history history-bk password output-hash)
 
 (defstruct (input-bar (:constructor %make-input-bar))
   screen
@@ -69,17 +69,18 @@
          (fg-color (ac +default-foreground-color+))
          (bg-color (ac +default-background-color+))
          (border-color (ac +default-border-color+))
-         (font (open-font *display*
-                          (if (font-exists-p +default-font-name+)
-                              +default-font-name+
-                              "*")))
+         (font (screen-font (current-screen)))
+           ;;(open-font *display*
+               ;;           (if (font-exists-p +default-font-name+)
+               ;;               +default-font-name+
+               ;;               "*")))
          (message-window (xlib:create-window :parent parent-window
                                              :x 0 :y 0 :width 1 :height 1
                                              :colormap default-colormap
                                              :background bg-color
                                              :border border-color
                                              :border-width 1
-                                             :bit-gravity :north-east
+                                             :bit-gravity :north-west
                                              :event-mask '(:exposure))))
     (setq bar (%make-input-bar
                :screen (current-screen)
@@ -107,7 +108,8 @@
                :input-line (make-input-bar-line :string (make-input-bar-string initial-input)
                                                 :position (length initial-input)
                                                 :history -1
-                                                :password password)
+                                                :password password
+                                                :output-hash (make-hash-table :test 'equal))
                :fonts (list font)
                :key-map nil
                :history nil
@@ -292,10 +294,11 @@ match with an element of the completions."
      ;; The input positions start at ~27px to the right, and are 9px wide.
      (let*
          ((pos (round (/ (max 0 (- (getf key :x) 27)) 9)))
-          (cmd (input-bar-search-command input pos)))
+          (cmd (input-bar-search-command input pos))
+          (prompt-width (text-line-width (input-bar-font bar) prompt :translate #'translate-id)))
        (case (getf key :code)
          (1
-          (if (< (getf key :x) 23)
+          (if (< (getf key :x) prompt-width)
               (group-button-press
                (current-group)
                (getf key :x)
@@ -307,7 +310,7 @@ match with an element of the completions."
             (eval-command cmd t)
             (throw :abort nil)))
          (3 ;; TODO: Deduplicate this.
-          (if (< (getf key :x) 23)
+          (if (< (getf key :x) prompt-width)
               (group-button-press
                (current-group)
                (getf key :x)
@@ -340,15 +343,54 @@ match with an element of the completions."
                (key-loop))
           (shutdown-input-bar-window bar)))))
 
+(defun process-formatted-command (input-string)
+  "Process a command selected by a PCRE. We can make assumptions about the string
+   since it was passed in through a regex match."
+    (let* ((p1 (position-if (lambda (x) (string-equal x "{"))
+                            input-string :start 0))
+           (p2 (and p1 (position-if (lambda (x) (string-equal x "}"))
+                                    input-string :start 0)))
+           (cmd-p1 (and p1 (position-if (lambda (x) (string-equal x "["))
+                                        input-string :start p1)))
+           (cmd-p2 (and p2 (position-if (lambda (x) (string-equal x "]"))
+                                        input-string :end p2 :from-end t)))
+           (command (and cmd-p1 cmd-p2 (subseq input-string (+ cmd-p1 1) cmd-p2)))
+           (text (and p2 cmd-p2 (subseq input-string (+ cmd-p2 2) p2))))
+      (list command text)))
+
+(defun paste-into-string (str insertion start end)
+  (if (= 0 start)
+      (concat insertion (subseq str end (length str)))
+      (concat (subseq str 0 start) insertion (subseq str end (length str)))))
+
+(defun format-input-string (input-string hash)
+  "Format strings to allow for characters to stand in for commands"
+  (if (not (string-equal input-string ""))
+      (loop with new-string = input-string
+        for (start end) = (multiple-value-list
+                           (cl-ppcre:scan
+                            "\{\\[[a-zA-Z0-9\-]*\\] [^\}]}"
+                            new-string))
+            while (and (numberp start) (numberp end))
+            do (let* ((separated (process-formatted-command (subseq new-string start end)))
+                       (command (car separated))
+                       (text (cadr separated)))
+                 (setf (gethash text hash) command)
+                 (setq new-string (paste-into-string new-string text start end)))
+            finally (return new-string))
+    ""))
+
 (defun draw-input-bar-bucket (bar prompt input &optional (tail "") errorp)
   "Draw the contents of input to the input bar window."
   (let* ((gcontext (ccontext-gc (input-bar-message-cc bar)))
          (win (input-bar-window bar))
          (prompt-width (text-line-width (input-bar-font bar) prompt :translate #'translate-id))
          (line-content (input-bar-line-string input))
-         (string (if (input-bar-line-password input)
+         (unformatted-string (if (input-bar-line-password input)
                      (make-string (length line-content) :initial-element #\*)
                      line-content))
+         ;; (input-output-hash input)
+         (string (format-input-string unformatted-string (make-hash-table :test 'equal)))
          (string-width (loop for char across string
                              summing (text-line-width (input-bar-font bar)
                                                       (string char)
@@ -357,8 +399,9 @@ match with an element of the completions."
          (tail-width   (text-line-width (input-bar-font bar) tail   :translate #'translate-id))
          (full-string-width (+ string-width space-width))
          (pos (input-bar-line-position input))
-         (width (+ prompt-width
-                   (max (- (head-width (current-head)) 30) (+ full-string-width space-width tail-width)))))
+         ;; TODO: Remove padding?
+         (width (max (- (window-width (current-window)) (* *message-window-padding* 2))
+                   (+ prompt-width (+ full-string-width space-width tail-width)))))
     (when errorp (rotatef (xlib:gcontext-background gcontext)
                           (xlib:gcontext-foreground gcontext)))
     (xlib:with-state (win)
@@ -367,7 +410,7 @@ match with an element of the completions."
                              (xlib:drawable-width win)
                              (xlib:drawable-height win) t))
       (setf (xlib:drawable-width win) (+ width (* *message-window-padding* 2)))
-      (setup-win-gravity (input-bar-screen bar) win *input-window-gravity*))
+      (setup-win-gravity (input-bar-screen bar) win :TOP-LEFT))
     (xlib:with-state (win)
       (draw-image-glyphs win gcontext (input-bar-font bar)
                          *message-window-padding*
@@ -736,7 +779,7 @@ input (pressing Return), nil otherwise."
 (defun start-bar (bar &optional code x y)
   "Read a command from the user. @var{initial-text} is optional. When
 supplied, the text will appear in the prompt."
-  (let ((cmd (completing-bar-read bar ": " (all-commands) :code code :x x :y y)))
+  (let ((cmd (completing-bar-read bar "λ " (all-commands) :code code :x x :y y)))
     ;;(unless cmd
     ;;  (throw 'error :abort))
     (when (plusp (length cmd))

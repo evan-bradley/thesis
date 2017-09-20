@@ -37,7 +37,8 @@
 (setq *debug-level* 0)
 (redirect-all-output (data-dir-file "debug-output" "txt"))
 (defvar *default-command-string*
-  "[delete] [maximize] [left] [right]")
+  "{[delete] x} {[maximize] ^} {[left] <} {[right] >}")
+  ;;"[delete] [maximize] [left] [right]")
 
 (defcommand maximize () ()
   "Maximizes the current window"
@@ -742,7 +743,6 @@ supplied, the text will appear in the prompt."
     (when (plusp (length cmd))
       ;;(eval-command cmd t)
       (echo cmd))))|#
-
 
 (run-shell-command "compton --dbus")
 (run-shell-command "feh --bg-center ~/Pictures/background.png")
