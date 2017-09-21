@@ -35,8 +35,14 @@
 (export '(make-input-bar
           completing-bar-read))
 
+(defvar *default-command-string*
+  "{[delete] x} {[maximize] ^} {[left] <} {[right] >}")
+
+(defstruct string-pos-assoc
+  input output command)
+
 (defstruct input-bar-line
-  string position selection history history-bk password output-hash)
+  string position selection history history-bk password output-assoc)
 
 (defstruct (input-bar (:constructor %make-input-bar))
   screen
@@ -109,7 +115,7 @@
                                                 :position (length initial-input)
                                                 :history -1
                                                 :password password
-                                                :output-hash (make-hash-table :test 'equal))
+                                                :output-assoc '())
                :fonts (list font)
                :key-map nil
                :history nil
@@ -359,26 +365,34 @@ match with an element of the completions."
       (list command text)))
 
 (defun paste-into-string (str insertion start end)
+  "Cuts the substring from start to end and inserts the insertion string."
   (if (= 0 start)
       (concat insertion (subseq str end (length str)))
       (concat (subseq str 0 start) insertion (subseq str end (length str)))))
 
-(defun format-input-string (input-string hash)
+(defun format-input-string (input-string)
   "Format strings to allow for characters to stand in for commands"
   (if (not (string-equal input-string ""))
       (loop with new-string = input-string
-        for (start end) = (multiple-value-list
-                           (cl-ppcre:scan
-                            "\{\\[[a-zA-Z0-9\-]*\\] [^\}]}"
-                            new-string))
+            with new-translation = nil
+            for (start end) = (multiple-value-list
+                               (cl-ppcre:scan
+                                "\{\\[[a-zA-Z0-9\-]*\\] [^\}]*}"
+                                new-string))
             while (and (numberp start) (numberp end))
-            do (let* ((separated (process-formatted-command (subseq new-string start end)))
-                       (command (car separated))
-                       (text (cadr separated)))
-                 (setf (gethash text hash) command)
+            do (let* ((separated (process-formatted-command
+                                  (subseq new-string start end)))
+                      (command (car separated))
+                      (text (cadr separated)))
+                 (setq new-translation (cons (make-string-pos-assoc
+                                              :input (list start end)
+                                              :output (list
+                                                       start
+                                                       (+ start (- (length text) 1)))
+                                              :command command) new-translation))
                  (setq new-string (paste-into-string new-string text start end)))
-            finally (return new-string))
-    ""))
+            finally (return (list new-string new-translation)))
+      ""))
 
 (defun draw-input-bar-bucket (bar prompt input &optional (tail "") errorp)
   "Draw the contents of input to the input bar window."
@@ -390,7 +404,9 @@ match with an element of the completions."
                      (make-string (length line-content) :initial-element #\*)
                      line-content))
          ;; (input-output-hash input)
-         (string (format-input-string unformatted-string (make-hash-table :test 'equal)))
+         (formatted-string-info (format-input-string unformatted-string))
+         (string (first formatted-string-info))
+         (translation-list (second formatted-string-info))
          (string-width (loop for char across string
                              summing (text-line-width (input-bar-font bar)
                                                       (string char)
@@ -404,6 +420,7 @@ match with an element of the completions."
                    (+ prompt-width (+ full-string-width space-width tail-width)))))
     (when errorp (rotatef (xlib:gcontext-background gcontext)
                           (xlib:gcontext-foreground gcontext)))
+    (setf (input-bar-line-output-assoc input) translation-list)
     (xlib:with-state (win)
       (xlib:with-gcontext (gcontext :foreground (xlib:gcontext-background gcontext))
         (xlib:draw-rectangle win gcontext 0 0
@@ -732,14 +749,27 @@ functions are passed this structure as their first argument."
     ;;(echo (input-bar-line-selection input))
     :done))
 
+(defun check-if-formatted-command (pos table)
+  "Checks if the command under the cursor has been formatted."
+  (loop for pos-assoc in table
+        do (let* ((range (string-pos-assoc-output pos-assoc)))
+             (when (and (>= pos (first range))
+                        (<= pos (second range)))
+               (return (string-pos-assoc-command pos-assoc))))
+        finally (return nil)))
+
+;; TODO: Can the logic in this be cleaned up?
 (defun input-bar-search-command (input pos)
   (unless (or (string-equal (input-bar-line-string input) "")
               (> pos (length (input-bar-line-string input))))
-    (let* ((p1 (position-if (lambda (x) (string-equal x "[")) (input-bar-line-string input) :end pos :from-end t))
-           (p2 (and p1 (position-if (lambda (x) (string-equal x "]")) (input-bar-line-string input) :start pos))))
-      (if (and (numberp p1) (numberp p2))
-          (input-bar-substring input (+ p1 1) p2)
-          nil))))
+    (let* ((cmd (check-if-formatted-command pos (input-bar-line-output-assoc input))))
+      (if (not (null cmd))
+          cmd
+          (let* ((p1 (position-if (lambda (x) (string-equal x "[")) (input-bar-line-string input) :end pos :from-end t))
+                 (p2 (and p1 (position-if (lambda (x) (string-equal x "]")) (input-bar-line-string input) :start pos))))
+            (if (and (numberp p1) (numberp p2))
+                (input-bar-substring input (+ p1 1) p2)
+                nil))))))
 
 
 ;;; Misc functions

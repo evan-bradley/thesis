@@ -10,7 +10,7 @@
 ;; TODO: Consider regex or template-string method to have live-updating commands.
 ;;       Look into StumpWM timers for this.
 ;; TODO: Improve window search algorithms.
-;; TODO: UTF-8 support in bar.
+;; DONE: UTF-8 support in bar.
 ;; DONE: Automatically fill bar above windows with commands.
 ;; TODO: Save window bar strings.
 ;; DONE: Why do the bars erase all their text sometimes?
@@ -22,6 +22,12 @@
 ;; TODO: Fill the bar with spaces to allow for typing anywhere.
 ;;       Delete spaces on the end to keep it even, and fill it with spaces when
 ;;       words are deleted.
+;; TODO: Improve maximize function.
+;; TODO: Get rid of cursor when not clicked.
+;; TODO: Right arrow kills window?
+;; TODO: Redraw bar as window is resized.
+;; TODO: Base colors off current color variables.
+;;       Bonus: Refresh current bars.
 
 (in-package :stumpwm)
 (require 'dbus)
@@ -33,11 +39,14 @@
  :style swank:*communication-style*
  :dont-close t)
 
+(load-module "ttf-fonts")
+(set-font (make-instance 'xft:font :family "Anonymous Pro" :subfamily "Bold" :size 13))
+
 (setq *mouse-focus-policy* :sloppy)
 (setq *debug-level* 0)
 (redirect-all-output (data-dir-file "debug-output" "txt"))
-(defvar *default-command-string*
-  "{[delete] x} {[maximize] ^} {[left] <} {[right] >}")
+;;(defvar *default-command-string*
+;;  "{[delete] x} {[maximize] ^} {[left] <} {[right] >}")
   ;;"[delete] [maximize] [left] [right]")
 
 (defcommand maximize () ()
@@ -746,3 +755,4 @@ supplied, the text will appear in the prompt."
 
 (run-shell-command "compton --dbus")
 (run-shell-command "feh --bg-center ~/Pictures/background.png")
+(run-shell-command "redshift")
