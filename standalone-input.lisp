@@ -35,6 +35,9 @@
 (export '(make-input-bar
           completing-bar-read))
 
+(defvar *default-command-prompt*
+  "λ ")
+
 (defvar *default-command-string*
   "{[delete] x} {[maximize] ^} {[left] <} {[right] >}")
 
@@ -65,16 +68,14 @@
   "All current input bars.")
 
 (defun make-input-bar (&key parent (initial-input "") password)
-  (labels ((ac (color)
-             (xlib:alloc-color (xlib:screen-default-colormap (screen-number (current-screen))) color)))
   (let* ((bar nil)
          (screen-number (screen-number (current-screen)))
          (default-colormap (xlib:screen-default-colormap screen-number))
          (screen-root (xlib:screen-root screen-number))
          (parent-window (or parent screen-root))
-         (fg-color (ac +default-foreground-color+))
-         (bg-color (ac +default-background-color+))
-         (border-color (ac +default-border-color+))
+         (fg-color (screen-fg-color (current-screen)))
+         (bg-color (screen-bg-color (current-screen)))
+         (border-color (screen-border-color (current-screen)))
          (font (screen-font (current-screen)))
            ;;(open-font *display*
                ;;           (if (font-exists-p +default-font-name+)
@@ -172,7 +173,7 @@
          (define-key map t 'input-bar-self-insert)
          map)))
     (push bar *input-bars*)
-    bar)))
+    bar))
 
 (defun find-input-bar-by-window (xwin)
   (find xwin *input-bars* :key #'input-bar-window))
@@ -197,10 +198,10 @@
 ))
 
 (defun shutdown-input-bar-window (bar)
-  (declare (ignore bar))
   (xlib:ungrab-keyboard *display*)
-  ;;(xlib:unmap-window (input-bar-window bar))
-  )
+  (let* ((input (input-bar-input-line bar)))
+    (setf (input-bar-line-position input) -1)
+    (draw-input-bar-bucket bar *default-command-prompt* input)))
 
 ;; Hack to avoid clobbering input from numpads with numlock on.
 (defun input-bar-handle-key-press-event (&rest event-slots
@@ -299,6 +300,7 @@ match with an element of the completions."
     ((and (listp key) (eq (car key) :type) (eq (getf key :type) :button-press))
      ;; The input positions start at ~27px to the right, and are 9px wide.
      (let*
+         ;; TODO: Properly calculate this.
          ((pos (round (/ (max 0 (- (getf key :x) 27)) 9)))
           (cmd (input-bar-search-command input pos))
           (prompt-width (text-line-width (input-bar-font bar) prompt :translate #'translate-id)))
@@ -314,6 +316,7 @@ match with an element of the completions."
          (2
           (unless (eq cmd nil)
             (eval-command cmd t)
+            (shutdown-input-bar-window bar)
             (throw :abort nil)))
          (3 ;; TODO: Deduplicate this.
           (if (< (getf key :x) prompt-width)
@@ -809,7 +812,7 @@ input (pressing Return), nil otherwise."
 (defun start-bar (bar &optional code x y)
   "Read a command from the user. @var{initial-text} is optional. When
 supplied, the text will appear in the prompt."
-  (let ((cmd (completing-bar-read bar "λ " (all-commands) :code code :x x :y y)))
+  (let ((cmd (completing-bar-read bar *default-command-prompt* (all-commands) :code code :x x :y y)))
     ;;(unless cmd
     ;;  (throw 'error :abort))
     (when (plusp (length cmd))

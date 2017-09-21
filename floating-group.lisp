@@ -215,8 +215,9 @@
   (declare (ignore head))
   )
 
+;; TODO: Why is this so slow when resizing?
 (defmethod group-button-press (group x y (window float-window))
-  (dformat 0 "(~a, ~a) ~a ~%" x y window)
+  ;;(dformat 0 "(~a, ~a) ~a ~%" x y window)
   (let ((screen (group-screen group))
         (initial-width (xlib:drawable-width (window-parent window)))
         (initial-height (xlib:drawable-height (window-parent window))))
@@ -264,7 +265,12 @@
                                  ;; Don't let the window become too small
                                  (float-window-move-resize window
                                                            :width (max w *min-frame-width*)
-                                                           :height (max h *min-frame-height*)))))))
+                                                           :height (max h *min-frame-height*))
+                                 ;; TODO: Create less processor-intensive function for
+                                 ;;       resizing the drawable.
+                                 #|(let ((input-bar (window-bar window)))
+                                   (when input-bar
+                                     (draw-input-bar-bucket input-bar *default-command-prompt* (input-bar-input-line input-bar))))|#)))))
                         t)
                        ;; We need to eat these events or they'll ALL
                        ;; come blasting in later. Also things start

@@ -41,6 +41,10 @@
 
 (load-module "ttf-fonts")
 (set-font (make-instance 'xft:font :family "Anonymous Pro" :subfamily "Bold" :size 13))
+(set-bg-color "white")
+(set-fg-color "black")
+(set-float-focus-color "white")
+(set-float-unfocus-color "gray")
 
 (setq *mouse-focus-policy* :sloppy)
 (setq *debug-level* 0)
