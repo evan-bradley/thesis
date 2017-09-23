@@ -312,7 +312,7 @@ match with an element of the completions."
                (getf key :x)
                (getf key :y)
                (group-current-window (current-group)))
-              (input-bar-goto-char input pos)))
+              (input-bar-goto-char input (translate-position-in input pos))))
          (2
           (unless (eq cmd nil)
             (eval-command cmd t)
@@ -378,24 +378,38 @@ match with an element of the completions."
   (if (not (string-equal input-string ""))
       (loop with new-string = input-string
             with new-translation = nil
+            with input-string-pos = 0
+            with new-string-start = 0
             for (start end) = (multiple-value-list
                                (cl-ppcre:scan
-                                "\{\\[[a-zA-Z0-9\-]*\\] [^\}]*}"
-                                new-string))
+                                "\{\\[[a-zA-Z0-9\-]*\\] [^\{\}]*}"
+                                input-string
+                                :start input-string-pos))
             while (and (numberp start) (numberp end))
             do (let* ((separated (process-formatted-command
-                                  (subseq new-string start end)))
+                                  (subseq input-string start end)))
                       (command (car separated))
                       (text (cadr separated)))
+                 (format t "new string: ~a ~%" new-string)
+                 (format t "new: ~a pos: ~a start: ~a end: ~a ~%"
+                         new-string-start input-string-pos start end)
+                 (setq new-string-start (+ new-string-start (- start input-string-pos)))
+                 (setq input-string-pos end)
+                 (format t "new: ~a pos: ~a start: ~a end: ~a ~%"
+                         new-string-start input-string-pos start end)
                  (setq new-translation (cons (make-string-pos-assoc
                                               :input (list start end)
                                               :output (list
-                                                       start
-                                                       (+ start (- (length text) 1)))
+                                                       new-string-start
+                                                       (+ new-string-start (- (length text) 1)))
                                               :command command) new-translation))
-                 (setq new-string (paste-into-string new-string text start end)))
+                 (setq new-string (paste-into-string
+                                   new-string text
+                                   new-string-start
+                                   (+ new-string-start (- end start))))
+                 (setq new-string-start (+ new-string-start (length text))))
             finally (return (list new-string new-translation)))
-      ""))
+      (list "" nil)))
 
 (defun draw-input-bar-bucket (bar prompt input &optional (tail "") errorp)
   "Draw the contents of input to the input bar window."
@@ -417,7 +431,10 @@ match with an element of the completions."
          (space-width  (text-line-width (input-bar-font bar) " "    :translate #'translate-id))
          (tail-width   (text-line-width (input-bar-font bar) tail   :translate #'translate-id))
          (full-string-width (+ string-width space-width))
-         (pos (input-bar-line-position input))
+         (raw-pos (input-bar-line-position input))
+         (pos (if (< raw-pos 0)
+                  raw-pos
+                  (translate-position-out input raw-pos)))
          ;; TODO: Remove padding?
          (width (max (- (window-width (current-window)) (* *message-window-padding* 2))
                    (+ prompt-width (+ full-string-width space-width tail-width)))))
@@ -538,8 +555,15 @@ second and neither excedes the bounds of the input string."
 position. @var{input} must be of type @var{input-bar-line}. Input
 functions are passed this structure as their first argument."
   (vector-push-extend #\_ (input-bar-line-string input))
-  (replace (input-bar-line-string input) (input-bar-line-string input)
-           :start2 (input-bar-line-position input) :start1 (1+ (input-bar-line-position input)))
+  (let* ((pos (input-bar-line-position input))
+         (pos-assoc (get-formatted-command pos (input-bar-line-output-assoc input)
+                                           #'string-pos-assoc-output))
+         (adjusted-pos (or (and pos-assoc (1- (second (string-pos-assoc-input pos-assoc))))
+                           pos)))
+    (dformat 0 "~a ~%" (input-bar-line-string input))
+    (replace (input-bar-line-string input) (input-bar-line-string input)
+             :start2 adjusted-pos :start1 (1+ adjusted-pos)))
+  (dformat 0 "~a ~%" (input-bar-line-string input))
   (setf (char (input-bar-line-string input) (input-bar-line-position input)) char)
   (incf (input-bar-line-position input)))
 
@@ -604,8 +628,8 @@ functions are passed this structure as their first argument."
                (<= pos 0))
            :error)
           (t
-           (replace (input-bar-line-string input) (input-bar-line-string input)
-                    :start2 pos :start1 (1- pos))
+             (replace (input-bar-line-string input) (input-bar-line-string input)
+                      :start2 pos :start1 (1- pos))
            (decf (fill-pointer (input-bar-line-string input)))
            (decf (input-bar-line-position input))))))
 
@@ -647,7 +671,8 @@ functions are passed this structure as their first argument."
 
 (defun input-bar-forward-char (bar input key)
   (declare (ignore key) (ignore bar))
-  (incf (input-bar-line-position input))
+  (let ((pos (translate-position-out input (input-bar-line-position input))))
+    (setf (input-bar-line-position input) (translate-position-in input (1+ pos))))
   (when (> (input-bar-line-position input)
            (length (input-bar-line-string input)))
     (setf (input-bar-line-position input) (length (input-bar-line-string input)))))
@@ -752,20 +777,13 @@ functions are passed this structure as their first argument."
     ;;(echo (input-bar-line-selection input))
     :done))
 
-(defun check-if-formatted-command (pos table)
-  "Checks if the command under the cursor has been formatted."
-  (loop for pos-assoc in table
-        do (let* ((range (string-pos-assoc-output pos-assoc)))
-             (when (and (>= pos (first range))
-                        (<= pos (second range)))
-               (return (string-pos-assoc-command pos-assoc))))
-        finally (return nil)))
-
 ;; TODO: Can the logic in this be cleaned up?
 (defun input-bar-search-command (input pos)
   (unless (or (string-equal (input-bar-line-string input) "")
               (> pos (length (input-bar-line-string input))))
-    (let* ((cmd (check-if-formatted-command pos (input-bar-line-output-assoc input))))
+    (let* ((pos-assoc (get-formatted-command pos (input-bar-line-output-assoc input)
+                                             #'string-pos-assoc-output))
+           (cmd (and pos-assoc (string-pos-assoc-command pos-assoc))))
       (if (not (null cmd))
           cmd
           (let* ((p1 (position-if (lambda (x) (string-equal x "[")) (input-bar-line-string input) :end pos :from-end t))
@@ -776,6 +794,66 @@ functions are passed this structure as their first argument."
 
 
 ;;; Misc functions
+
+(defun translate-position-in (input pos)
+  "Translates cursor coordinates in an output string to proper coordinates in
+   the corresponding input string."
+  (loop with i = pos
+        for pos-assoc in (input-bar-line-output-assoc input)
+        do (let* ((formatted (string-pos-assoc-output pos-assoc))
+                  (unformatted (string-pos-assoc-input pos-assoc))
+                  (unformatted-diff (- (second unformatted) (first unformatted)))
+                  (pos-adjust (if (> pos (second formatted))
+                                  1
+                                  (- (second formatted) pos)))
+                  (input-adjust (if (= pos (second formatted))
+                                    (- unformatted-diff 2)
+                                    unformatted-diff)))
+             (when (>= pos (first formatted))
+               (setq i (+ i (- input-adjust pos-adjust)))))
+        finally (return i)))
+
+;; FIXME: This still doesn't really work.
+(defun translate-position-out (input pos)
+  "Translates cursor coordinates in an input string to proper coordinates in
+   the corresponding output string."
+  (loop with i = 0
+        with prev-start = (length (input-bar-line-string input))
+        for pos-assoc in (input-bar-line-output-assoc input)
+        do (let* ((formatted (string-pos-assoc-output pos-assoc))
+                  (unformatted (string-pos-assoc-input pos-assoc))
+                  (formatted-diff (- (second formatted) (first formatted)))
+                  (unformatted-diff (- (second unformatted) (first unformatted))))
+             (format t "f: ~a u: ~a f-d: ~a u-d: ~a    i: ~a ~%"
+                     formatted unformatted formatted-diff unformatted-diff i)
+             (cond
+               ((>= pos (second unformatted))
+                (setq i (+ i (1+ formatted-diff) (- prev-start (second unformatted)))))
+                ;;(setq i (+ i unformatted-diff)))
+               ((and (> pos (first unformatted))
+                     (< pos (second unformatted)))
+                (format t "Inside brackets~%")
+                (cond
+                  ((< pos (- (1- (second unformatted)) (1+ formatted-diff)))
+                   (format t "First: ~a~%" (- (1- (second unformatted)) (1+ formatted-diff)))
+                   (setq i (+ i formatted-diff)))
+                  ((< pos (second unformatted))
+                   (format t "Second: ~a Adding: ~a~%" (1- (second unformatted)) (- (- (second unformatted) 2) pos))
+                   (setq i (+ i (- (- (second unformatted) 2) pos)))))))
+
+             (format t "prev-start: ~a current end: ~a ~%" prev-start (second unformatted))
+             (setq prev-start (first unformatted)))
+                   ;;(setq i (+ i (- (1- second unformatted) (1+ formatted-diff))))))))
+        finally (return i)))
+
+(defun get-formatted-command (pos table getter)
+  "Checks if the command under the cursor has been formatted."
+  (loop for pos-assoc in table
+        do (let* ((range (funcall getter pos-assoc)))
+             (when (and (>= pos (first range))
+                        (<= pos (second range)))
+               (return pos-assoc)))
+        finally (return nil)))
 
 (defun input-bar-process (bar prompt input code state)
   "Process the key (code and state), given the current input

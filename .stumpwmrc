@@ -14,8 +14,8 @@
 ;; DONE: Automatically fill bar above windows with commands.
 ;; TODO: Save window bar strings.
 ;; DONE: Why do the bars erase all their text sometimes?
-;; TODO: Properly size bar on top of application.
-;; TODO: Improve styling (Change orange wrap-around to another color, etc).
+;; DONE: Properly size bar on top of application.
+;; DONE: Improve styling (Change orange wrap-around to another color, etc).
 ;; TODO: Next/previous window functions.
 ;; TODO: Properly kill windows after "delete"
 ;; TODO: Take everything from .stumpwmrc and put into proper files.
@@ -23,11 +23,12 @@
 ;;       Delete spaces on the end to keep it even, and fill it with spaces when
 ;;       words are deleted.
 ;; TODO: Improve maximize function.
-;; TODO: Get rid of cursor when not clicked.
-;; TODO: Right arrow kills window?
+;; DONE: Get rid of cursor when not clicked.
+;; DONE: Right arrow kills window?
 ;; TODO: Redraw bar as window is resized.
-;; TODO: Base colors off current color variables.
-;;       Bonus: Refresh current bars.
+;; DONE: Base colors off current color variables.
+;; TODO: Bonus: Refresh current bars.
+;; TODO: K-means clustering
 
 (in-package :stumpwm)
 (require 'dbus)
