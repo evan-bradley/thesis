@@ -41,6 +41,12 @@
 (defvar *default-command-string*
   "{[delete] x} {[maximize] ^} {[left] <} {[right] >}")
 
+(defvar *default-command-list*
+  '(((eval-command "delete") "x")
+    ((eval-command "maximize 1 1") "^")
+    ((eval-command "left") "<")
+    ((eval-command "right") ">")))
+
 (defstruct string-pos-assoc
   input output command)
 
@@ -118,7 +124,7 @@
                                                 :password password
                                                 :output-assoc '())
                :fonts (list font)
-               :key-map nil
+               :key-map (make-sparse-keymap) ;;nil
                :history nil
                :last-command nil
                :completions nil
@@ -135,7 +141,9 @@
      (list (xlib:find-atom *display* :_NET_WM_WINDOW_TYPE_DESKTOP))
      :atom
      32)
-    (when (null (input-bar-key-map bar))
+    (define-key (input-bar-key-map bar) (kbd "ESC") 'input-bar-abort)
+    ;; FIXME: Keys are disabled until editing is finalized.
+    #|(when (null (input-bar-key-map bar))
       (setf (input-bar-key-map bar)
        (let ((map (make-sparse-keymap)))
          (define-key map (kbd "DEL") 'input-bar-delete-backward-char)
@@ -171,7 +179,7 @@
          (define-key map (kbd "TAB") 'input-bar-complete-forward)
          (define-key map (kbd "ISO_Left_Tab") 'input-bar-complete-backward)
          (define-key map t 'input-bar-self-insert)
-         map)))
+         map)))|#
     (push bar *input-bars*)
     bar))
 
@@ -280,12 +288,13 @@ match with an element of the completions."
   (setf (input-bar-current-completions bar) nil)
   (setf (input-bar-current-completions-idx bar) nil)
   (let ((input (input-bar-input-line bar))
-        (key (list :type :button-press :x x :y y :code code)))
+        (key (list :type :button-press :x x :y y :code code))
+        (should-exec t))
     (when (and code x y)
-      (catch :abort
-        (process-key bar prompt input key)))
-    (let ((line (read-one-bar-line bar prompt input :require-match require-match)))
-      (when line (string-trim " " line)))))
+      (setq should-exec (not (catch :abort (process-key bar prompt input key)))))
+    (when should-exec
+      (let ((line (read-one-bar-line bar prompt input :require-match require-match)))
+        (when line (string-trim " " line))))))
 
 (defun match-input (bar input)
   (let* ((in (string-trim " " (input-bar-line-string input)))
@@ -312,12 +321,12 @@ match with an element of the completions."
                (getf key :x)
                (getf key :y)
                (group-current-window (current-group)))
-              (input-bar-goto-char input (translate-position-in input pos))))
+              (input-bar-goto-char input pos)))
          (2
           (unless (eq cmd nil)
-            (eval-command cmd t)
-            (shutdown-input-bar-window bar)
-            (throw :abort nil)))
+            (eval cmd)
+            ;;(shutdown-input-bar-window bar)
+            (throw :abort t)))
          (3 ;; TODO: Deduplicate this.
           (if (< (getf key :x) prompt-width)
               (group-button-press
@@ -382,7 +391,7 @@ match with an element of the completions."
             with new-string-start = 0
             for (start end) = (multiple-value-list
                                (cl-ppcre:scan
-                                "\{\\[[a-zA-Z0-9\-]*\\] [^\{\}]*}"
+                                "\{\\[[a-zA-Z0-9\- ]*\\] [^\{\}]*}"
                                 input-string
                                 :start input-string-pos))
             while (and (numberp start) (numberp end))
@@ -390,13 +399,13 @@ match with an element of the completions."
                                   (subseq input-string start end)))
                       (command (car separated))
                       (text (cadr separated)))
-                 (format t "new string: ~a ~%" new-string)
-                 (format t "new: ~a pos: ~a start: ~a end: ~a ~%"
-                         new-string-start input-string-pos start end)
+                 ;;(format t "new string: ~a ~%" new-string)
+                 ;;(format t "new: ~a pos: ~a start: ~a end: ~a ~%"
+                 ;;        new-string-start input-string-pos start end)
                  (setq new-string-start (+ new-string-start (- start input-string-pos)))
                  (setq input-string-pos end)
-                 (format t "new: ~a pos: ~a start: ~a end: ~a ~%"
-                         new-string-start input-string-pos start end)
+                 ;;(format t "new: ~a pos: ~a start: ~a end: ~a ~%"
+                 ;;        new-string-start input-string-pos start end)
                  (setq new-translation (cons (make-string-pos-assoc
                                               :input (list start end)
                                               :output (list
@@ -411,19 +420,24 @@ match with an element of the completions."
             finally (return (list new-string new-translation)))
       (list "" nil)))
 
+(defun render-bar-string (command-list)
+  (reduce (lambda (str item)
+            (concat str
+                    (if (equal str "") "" " ")
+                    (second item)))
+          command-list :initial-value ""))
+
 (defun draw-input-bar-bucket (bar prompt input &optional (tail "") errorp)
   "Draw the contents of input to the input bar window."
   (let* ((gcontext (ccontext-gc (input-bar-message-cc bar)))
          (win (input-bar-window bar))
          (prompt-width (text-line-width (input-bar-font bar) prompt :translate #'translate-id))
-         (line-content (input-bar-line-string input))
-         (unformatted-string (if (input-bar-line-password input)
-                     (make-string (length line-content) :initial-element #\*)
-                     line-content))
+         ;;(line-content (input-bar-line-string input))
+         ;;(unformatted-string (if (input-bar-line-password input)
+         ;;            (make-string (length line-content) :initial-element #\*)
+         ;;            line-content))
          ;; (input-output-hash input)
-         (formatted-string-info (format-input-string unformatted-string))
-         (string (first formatted-string-info))
-         (translation-list (second formatted-string-info))
+         (string (render-bar-string *default-command-list*))
          (string-width (loop for char across string
                              summing (text-line-width (input-bar-font bar)
                                                       (string char)
@@ -431,16 +445,16 @@ match with an element of the completions."
          (space-width  (text-line-width (input-bar-font bar) " "    :translate #'translate-id))
          (tail-width   (text-line-width (input-bar-font bar) tail   :translate #'translate-id))
          (full-string-width (+ string-width space-width))
-         (raw-pos (input-bar-line-position input))
-         (pos (if (< raw-pos 0)
-                  raw-pos
-                  (translate-position-out input raw-pos)))
+         (pos (input-bar-line-position input))
          ;; TODO: Remove padding?
          (width (max (- (window-width (current-window)) (* *message-window-padding* 2))
                    (+ prompt-width (+ full-string-width space-width tail-width)))))
+
+    (setf (input-bar-line-string input) string)
+    (if (> pos (- (length string) 1))
+        (setf (input-bar-line-position input) -1))
     (when errorp (rotatef (xlib:gcontext-background gcontext)
                           (xlib:gcontext-foreground gcontext)))
-    (setf (input-bar-line-output-assoc input) translation-list)
     (xlib:with-state (win)
       (xlib:with-gcontext (gcontext :foreground (xlib:gcontext-background gcontext))
         (xlib:draw-rectangle win gcontext 0 0
@@ -777,8 +791,29 @@ functions are passed this structure as their first argument."
     ;;(echo (input-bar-line-selection input))
     :done))
 
-;; TODO: Can the logic in this be cleaned up?
+(defun create-coordinate-list (command-list)
+  (reduce
+   (lambda (lst item)
+     (let* ((start-pos (if (equalp lst nil) 0 (+ (second (first (last lst))) 2))))
+       (append lst
+               (list (list start-pos
+                           (+ start-pos (length (second item)) -1)
+                           (first item))))))
+   command-list
+   :initial-value nil))
+
 (defun input-bar-search-command (input pos)
+  (declare (ignore input))
+  (reduce (lambda (lst item)
+            (if (and (>= pos (first item))
+                     (<= pos (second item)))
+                (third item)
+                lst))
+          (create-coordinate-list *default-command-list*)
+          :initial-value nil))
+
+;; TODO: Can the logic in this be cleaned up?
+#|(defun input-bar-search-command (input pos)
   (unless (or (string-equal (input-bar-line-string input) "")
               (> pos (length (input-bar-line-string input))))
     (let* ((pos-assoc (get-formatted-command pos (input-bar-line-output-assoc input)
@@ -790,7 +825,7 @@ functions are passed this structure as their first argument."
                  (p2 (and p1 (position-if (lambda (x) (string-equal x "]")) (input-bar-line-string input) :start pos))))
             (if (and (numberp p1) (numberp p2))
                 (input-bar-substring input (+ p1 1) p2)
-                nil))))))
+                nil))))))|#
 
 
 ;;; Misc functions
@@ -822,26 +857,25 @@ functions are passed this structure as their first argument."
         for pos-assoc in (input-bar-line-output-assoc input)
         do (let* ((formatted (string-pos-assoc-output pos-assoc))
                   (unformatted (string-pos-assoc-input pos-assoc))
-                  (formatted-diff (- (second formatted) (first formatted)))
-                  (unformatted-diff (- (second unformatted) (first unformatted))))
-             (format t "f: ~a u: ~a f-d: ~a u-d: ~a    i: ~a ~%"
-                     formatted unformatted formatted-diff unformatted-diff i)
+                  (formatted-diff (- (second formatted) (first formatted))))
+             ;;(format t "f: ~a u: ~a f-d: ~a u-d: ~a    i: ~a ~%"
+             ;;        formatted unformatted formatted-diff unformatted-diff i)
              (cond
                ((>= pos (second unformatted))
                 (setq i (+ i (1+ formatted-diff) (- prev-start (second unformatted)))))
                 ;;(setq i (+ i unformatted-diff)))
                ((and (> pos (first unformatted))
                      (< pos (second unformatted)))
-                (format t "Inside brackets~%")
+                ;;(format t "Inside brackets~%")
                 (cond
                   ((< pos (- (1- (second unformatted)) (1+ formatted-diff)))
-                   (format t "First: ~a~%" (- (1- (second unformatted)) (1+ formatted-diff)))
+                   ;;(format t "First: ~a~%" (- (1- (second unformatted)) (1+ formatted-diff)))
                    (setq i (+ i formatted-diff)))
                   ((< pos (second unformatted))
-                   (format t "Second: ~a Adding: ~a~%" (1- (second unformatted)) (- (- (second unformatted) 2) pos))
+                   ;;(format t "Second: ~a Adding: ~a~%" (1- (second unformatted)) (- (- (second unformatted) 2) pos))
                    (setq i (+ i (- (- (second unformatted) 2) pos)))))))
 
-             (format t "prev-start: ~a current end: ~a ~%" prev-start (second unformatted))
+             ;;(format t "prev-start: ~a current end: ~a ~%" prev-start (second unformatted))
              (setq prev-start (first unformatted)))
                    ;;(setq i (+ i (- (1- second unformatted) (1+ formatted-diff))))))))
         finally (return i)))

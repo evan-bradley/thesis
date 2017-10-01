@@ -17,7 +17,7 @@
 ;; DONE: Properly size bar on top of application.
 ;; DONE: Improve styling (Change orange wrap-around to another color, etc).
 ;; TODO: Next/previous window functions.
-;; TODO: Properly kill windows after "delete"
+;; DONE: Properly exit from bar after executing a command.
 ;; TODO: Take everything from .stumpwmrc and put into proper files.
 ;; TODO: Fill the bar with spaces to allow for typing anywhere.
 ;;       Delete spaces on the end to keep it even, and fill it with spaces when
@@ -29,6 +29,10 @@
 ;; DONE: Base colors off current color variables.
 ;; TODO: Bonus: Refresh current bars.
 ;; TODO: K-means clustering
+;; TODO: Tree-style window list bar on the side for seeing which applications are open
+;;        (plus more?)
+;;        This comes from the tree-style tabs extensions on Firefox, which list many tabs.
+;; TODO: StumpWM echoes "T is not a function" occasionally when executing on the bar.
 
 (in-package :stumpwm)
 (require 'dbus)
@@ -47,6 +51,15 @@
 (set-float-focus-color "white")
 (set-float-unfocus-color "gray")
 
+(setq *default-command-list*
+  '(((eval-command "delete") "x")
+    ((eval-command "maximize 1 1") "^")
+    ((eval-command "maximize 2 1 top left") "[▓ ]")
+    ((eval-command "maximize 2 1 top right") "[ ▓]")
+    ((eval-command "left") "<")
+    ((eval-command "right") ">")))
+
+
 (setq *mouse-focus-policy* :sloppy)
 (setq *debug-level* 0)
 (redirect-all-output (data-dir-file "debug-output" "txt"))
@@ -54,13 +67,39 @@
 ;;  "{[delete] x} {[maximize] ^} {[left] <} {[right] >}")
   ;;"[delete] [maximize] [left] [right]")
 
-(defcommand maximize () ()
+(defcommand maximize
+    (&optional (width-div 1) (height-div 1) (t-b "top") (l-r "left"))
+    ((:number "Enter width divisor ")
+     (:number "Enter height divisor ")
+     (:string "Enter top/bottom ")
+     (:string "Enter side "))
   "Maximizes the current window"
-  (float-window-move-resize (current-window)
-                            :x 0
-                            :y 0
-                            :width (- (screen-width (current-screen)) 4)
-                            :height (- (screen-height (current-screen)) 6)))
+  (let* ((new-width (/ (- (screen-width (current-screen))
+                      (- (xlib:drawable-width (window-parent (current-window)))
+                         (window-width (current-window)))
+                      (* 2 *float-window-border*))
+                       width-div))
+         (new-height (/ (- (screen-height (current-screen))
+                           (- (xlib:drawable-height (window-parent (current-window)))
+                              (window-height (current-window)))
+                           (* 2 *float-window-border*))
+                        height-div))
+         (new-x (switch (l-r :test #'equal)
+                  ("left"
+                   0)
+                  ("right"
+                   (- (screen-width (current-screen)) new-width))))
+         (new-y (switch (t-b :test #'equal)
+                  ("top"
+                   0)
+                  ("bottom"
+                   (- (screen-height (current-screen)) new-height)))))
+    (float-window-move-resize
+     (current-window)
+     :x new-x
+     :y new-y
+     :width new-width
+     :height new-height)))
 
 (defcommand left () ()
   "Temporary until I implement bar subtitutions"
