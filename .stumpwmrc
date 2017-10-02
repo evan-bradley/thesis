@@ -32,7 +32,7 @@
 ;; TODO: Tree-style window list bar on the side for seeing which applications are open
 ;;        (plus more?)
 ;;        This comes from the tree-style tabs extensions on Firefox, which list many tabs.
-;; TODO: StumpWM echoes "T is not a function" occasionally when executing on the bar.
+;; TODO: StumpWM echoes "Command T is not found" occasionally when executing on the bar.
 
 (in-package :stumpwm)
 (require 'dbus)
@@ -45,20 +45,21 @@
  :dont-close t)
 
 (load-module "ttf-fonts")
-(set-font (make-instance 'xft:font :family "Anonymous Pro" :subfamily "Bold" :size 13))
+;;(set-font (make-instance 'xft:font :family "Anonymous Pro" :subfamily "Bold" :size 13))
+(set-font (make-instance 'xft:font :family "DejaVu Sans Mono" :subfamily "Book" :size 12))
 (set-bg-color "white")
 (set-fg-color "black")
 (set-float-focus-color "white")
 (set-float-unfocus-color "gray")
 
+;; ▓
 (setq *default-command-list*
-  '(((eval-command "delete") "x")
-    ((eval-command "maximize 1 1") "^")
-    ((eval-command "maximize 2 1 top left") "[▓ ]")
-    ((eval-command "maximize 2 1 top right") "[ ▓]")
-    ((eval-command "left") "<")
-    ((eval-command "right") ">")))
-
+  '(((eval-command "delete") "Ø")
+    ((eval-command "maximize 1 1 top left") "[▒▒]")
+    ((eval-command "maximize 2 1 top left") "[▒ ]")
+    ((eval-command "maximize 2 1 top right") "[ ▒]")
+    ((eval-command "left") "«——")
+    ((eval-command "right") "——»")))
 
 (setq *mouse-focus-policy* :sloppy)
 (setq *debug-level* 0)
