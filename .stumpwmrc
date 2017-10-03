@@ -4,26 +4,33 @@
 ;; TODO: Organize everything into hooks.
 ;; TODO: Idea: automatically place newly opened windows somewhere on plane.
 ;;       Addition: user toggle whether to automatically pan and focus those windows.
-;; TODO: Keys/commands to resize windows to certain sizes (full/half-screen, etc.)
+;; DONE: Keys/commands to resize windows to certain sizes (full/half-screen, etc.)
 ;;       This will take shape as a sort-of tiling mode.
 ;; TODO: Command to adjust window to certain position.
 ;;       Find window to particular side and align current window to that one.
+;;       Offer options for both moving and resizing on each side of the window.
+;;       Make quick option for adjusting to the closest window.
 ;; TODO: Consider regex or template-string method to have live-updating commands.
 ;;       Look into StumpWM timers for this.
 ;; TODO: Improve window search algorithms.
 ;; DONE: UTF-8 support in bar.
 ;; DONE: Automatically fill bar above windows with commands.
 ;; TODO: Save window bar strings.
+;;       Look into StumpWM state-saving.
 ;; DONE: Why do the bars erase all their text sometimes?
 ;; DONE: Properly size bar on top of application.
 ;; DONE: Improve styling (Change orange wrap-around to another color, etc).
 ;; TODO: Next/previous window functions.
+;;       Should operate inside view and simply operate on cycle.
+;;       Eventually use reinforcement learning to predict the next window.
+;;       Also include option for ordering based on focus (like Alt+Tab).
 ;; DONE: Properly exit from bar after executing a command.
 ;; TODO: Take everything from .stumpwmrc and put into proper files.
+;;       Could be split into overview and non-overview functions.
 ;; TODO: Fill the bar with spaces to allow for typing anywhere.
 ;;       Delete spaces on the end to keep it even, and fill it with spaces when
 ;;       words are deleted.
-;; TODO: Improve maximize function.
+;; DONE: Improve maximize function.
 ;; DONE: Get rid of cursor when not clicked.
 ;; DONE: Right arrow kills window?
 ;; TODO: Redraw bar as window is resized.
@@ -385,6 +392,41 @@ To activate a view:
 ;; Take the direction and find the window with the nearest
 ;; (x, y) coordinates in that direction.
 ;; Move to that window (centered or on left).
+;; Must consider both position and distance when finding window.
+;;
+;; +---A--+
+;; |      |  +--B-+
+;; |      |  +----+
+;; +------+ +--C-+
+;;          +----+
+;; This would select B, not C.
+;; ---------------------------
+;;
+;; +---A--+
+;; |      |           +--B-+
+;; |      |           +----+
+;; +------+ +--C-+
+;;          +----+
+;; Would this select B or C?
+;; ---------------------------
+;;
+;; +---A--+
+;; |      |
+;; |      |
+;; +------+
+;;
+;;          +--B-+
+;;          +----+
+;; Probably would select B.
+;; ---------------------------
+;;
+;; Cases:
+;;   - Window is on side and intersects the middle-line of the current window.
+;;   - Window is within the width/height of current window.
+;;     - e.g. searching on right: window's top/bottom y-coords intersect the
+;;       current window's top/bottom y-coords.
+;;   - Window doesn't intersect either line, but is closest on corresponding side.
+;;
 (defun locate-window-to-side (win other-wins dir)
   (let* ((extents (get-win-bounding-box nil nil nil nil (list win)))
          (min-coords (first extents))
