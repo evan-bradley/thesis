@@ -7,6 +7,7 @@
 ;; TODO: Keys/commands to resize windows to certain sizes (full/half-screen, etc.)
 ;;       This will take shape as a sort-of tiling mode.
 ;; TODO: Command to adjust window to certain position.
+;;       Find window to particular side and align current window to that one.
 ;; TODO: Consider regex or template-string method to have live-updating commands.
 ;;       Look into StumpWM timers for this.
 ;; TODO: Improve window search algorithms.
@@ -33,6 +34,13 @@
 ;;        (plus more?)
 ;;        This comes from the tree-style tabs extensions on Firefox, which list many tabs.
 ;; TODO: StumpWM echoes "Command T is not found" occasionally when executing on the bar.
+;; TODO: Idea: radially zoom out. So zoom out to bounding box of windows
+;;       surrounding current window, then the windows surrounding those, etc.
+;;       This would probably be tricky to implement, since it would ideally create
+;;       a perfect-ish bounding box of the first n windows around the current center window.
+;;       Idea for implementation: get bounding box of (up down left right), then
+;;       get the bounding box of the up window for the up window, the down for the down,
+;;       etc. So (up^2 down^2 left^2 right^2) ... (up^n down^n left^n right^n)
 
 (in-package :stumpwm)
 (require 'dbus)
@@ -340,7 +348,7 @@ To activate a view:
 (defun find-window-to-side (cur-coord get-coord compare closest-win current-best lst)
   (if (null lst)
       (if (funcall compare (funcall get-coord closest-win) cur-coord)
-          (first closest-win)
+          (values (first closest-win) current-best)
           nil)
       (let ((cur-dist (abs (- cur-coord (funcall get-coord (car lst))))))
         (if (or (equal current-best nil) (< cur-dist current-best))
@@ -360,22 +368,24 @@ To activate a view:
          (max-y (second max-coords)))
     (list win (list min-x min-y) (list max-x max-y))))
 
-(defun filter-outside-boundaries (min max comp1 comp2 lst)
-  (remove-if (lambda (x) (or (< (funcall comp1 x) min)
-                             (> (funcall comp2 x) max)))
+(defun filter-outside-boundaries (min max coord1 coord2 lst)
+  (remove-if (lambda (win)
+               (or (< (funcall coord1 win) min)
+                   (> (funcall coord2 win) max)))
              lst))
 
-(defun filter-outside-line (line comp1 comp2 lst)
-  (remove-if-not (lambda (x)
-                   (and (> line (funcall comp1 x))
-                        (< line (funcall comp2 x))))
+;; Only returns windows that cross the line on a particular axis.
+(defun filter-outside-line (line coord1 coord2 lst)
+  (remove-if-not (lambda (win)
+                   (and (> line (funcall coord1 win))
+                        (< line (funcall coord2 win))))
                  lst))
 
 ;; TODO: Pan to window.
 ;; Take the direction and find the window with the nearest
 ;; (x, y) coordinates in that direction.
 ;; Move to that window (centered or on left).
-(defun pan-to-window (win dir)
+(defun locate-window-to-side (win other-wins dir)
   (let* ((extents (get-win-bounding-box nil nil nil nil (list win)))
          (min-coords (first extents))
          (max-coords (second extents))
@@ -393,8 +403,9 @@ To activate a view:
          (x-median (/ (- max-x min-x) 2))
          (y-median (/ (- max-y min-y) 2))
          (win nil)
+         (dist 0)
          (win-list (map 'list #'make-win-data-structure
-                        (remove (current-window) (group-windows (current-group)))))
+                        other-wins))
          (win-list-filtered nil))
     ;; TODO: Should use structure.
     (switch (dir :test #'equal)
@@ -422,33 +433,35 @@ To activate a view:
        (setq win-list-filtered (filter-outside-line y-median get-min-y get-max-y win-list))
        ;;(setq win-list-filtered (filter-outside-boundaries min-y max-y get-min-y get-max-y win-list))
        (setq val max-x)))
-    (print win-list-filtered)
-    (echo win-list-filtered)
-    (setq win (find-window-to-side val get-coord compare nil nil
-                                   win-list-filtered))
+    ;;(print win-list-filtered)
+    ;;(echo win-list-filtered)
+    (multiple-value-setq
+     (win dist)
+     (find-window-to-side val get-coord compare nil nil win-list-filtered))
     ;; First heuristic: search within windows touching a line running
     ;; through the middle of the window.
     (if (not (null win))
-        (progn
-          (zoom-to-window win 'left)
-          (focus-window win t)
-          :done)
+        (values win dist)
         (progn
           ;; Perform a wider search that simply finds the closest window.
-          (setq win (find-window-to-side val get-coord compare nil nil win-list))
+          (multiple-value-setq
+           (win dist)
+           (find-window-to-side val get-coord compare nil nil win-list))
           (if (not (null win))
-              (progn
-                (zoom-to-window win 'left)
-                (focus-window win t)
-                :done)
-              "No window in that direction.")))))
+              (values win dist)
+              nil)))))
 
 (defcommand move-to-window (dir) ((:string "Enter direction: "))
   (if (or (equal dir "up") (equal dir "down") (equal dir "left") (equal dir "right"))
-      (let ((ret nil))
-        (setq ret (pan-to-window (group-current-window (current-group)) dir))
-        (if (not (equal ret :done))
-            (echo ret)))
+      (let ((win (locate-window-to-side
+                  (group-current-window (current-group))
+                  (remove (current-window) (group-windows (current-group)))
+                  dir)))
+        (if (not (null win))
+            (progn
+              (zoom-to-window win 'left)
+              (focus-window win t))
+            (echo "No window in that direction.")))
       (echo "Invalid direction. Allowed directions: up, down, left, right.")))
 
 ;; TODO: Move screen when the window is dragged to the side.
@@ -732,33 +745,292 @@ To activate a view:
 
 (add-hook *root-click-hook* 'root-window-click)
 ;;(remove-hook *root-click-hook* 'root-window-click)
+(defvar *window-graph* (make-hash-table))
 
-;; Read some doc
-;;(define-key *root-map* (kbd "d") "exec gv")
-;; Browse somewhere
-;;(define-key *root-map* (kbd "b") "colon1 exec firefox http://www.")
-;; Ssh somewhere
-;;(define-key *root-map* (kbd "C-s") "colon1 exec xterm -e ssh ")
-;; Lock screen
-;;(define-key *root-map* (kbd "C-l") "exec xlock")
+(add-hook *new-window-hook* 'add-window-to-graph)
 
-;; Web jump (works for Google and Imdb)
-;;(defmacro make-web-jump (name prefix)
-;;  `(defcommand ,(intern name) (search) ((:rest ,(concatenate 'string name " search: ")))
-;;    (substitute #\+ #\Space search)
-;;    (run-shell-command (concatenate 'string ,prefix search))))
+(defstruct (win-geometry (:constructor %make-win-geometry))
+  center
+  min
+  max)
 
-;;(make-web-jump "google" "firefox http://www.google.fr/search?q=")
-;;(make-web-jump "imdb" "firefox http://www.imdb.com/find?q=")
+(defstruct edge
+  source-node
+  target-node
+  dir
+  dist)
 
-;; C-t M-s is a terrble binding, but you get the idea.
-;;(define-key *root-map* (kbd "M-s") "google")
-;;(define-key *root-map* (kbd "i") "imdb")
+;; XXX: Should min/max-(x, y) be point structs?
+(defstruct win-node
+  win
+  geometry
+  up
+  down
+  left
+  right)
 
-;; Message window font
-(set-font "-xos4-terminus-medium-r-normal--14-140-72-72-c-80-iso8859-15")
+(defvar *search-order* (make-array 4 :initial-contents '("down" "right" "up" "left")))
 
-;;; Define window placement policy...
+(defun make-win-geometry (win)
+  (let* ((extents (get-win-bounding-box nil nil nil nil (list win)))
+         (min-coords (first extents))
+         (max-coords (second extents))
+         (min-point (make-point
+                     :x (first min-coords)
+                     :y (second min-coords)))
+         (max-point (make-point
+                     :x (first max-coords)
+                     :y (second max-coords)))
+         (center-point (make-point
+                        :x (/ (- (first max-coords) (first min-coords)) 2)
+                        :y (/ (- (second max-coords) (second min-coords)) 2))))
+    (%make-win-geometry
+     :center center-point
+     :min min-point
+     :max max-point)))
+
+(defun fmap (functions &rest args)
+  (declare (dynamic-extent args))
+  "Applies each function to the arguments. Returns a list of results."
+  (mapcar (lambda (function) (apply function args))
+          functions))
+
+(defun rotate-n (list n )
+  (cond ((plusp n)
+         (rotate-n
+          (nconc (rest list) (progn (setf (cdr list) nil) list))
+          (1- n)))
+        ((minusp n)
+         (rotate-n
+          (nconc (last list) (nbutlast list))
+          (1+ n)))
+        (t list)))
+
+(defun enqueue-edges (win queue num)
+    (map nil (lambda (edge) (cl-containers:enqueue edge queue))
+         (reduce (lambda (lst i)
+                   (cons `(win-node-,(aref *search-order* i) ,win) lst))
+                 (rotate-n '(0 1 2 3) num))))
+
+(defun geom->corners (geom)
+  "(upper-left upper-right bottom-left bottom-right)"
+  (list
+   (make-point
+    :x (point-x (win-geometry-min geom))
+    :y (point-y (win-geometry-min geom)))
+   (make-point
+    :x (point-x (win-geometry-max geom))
+    :y (point-y (win-geometry-min geom)))
+   (make-point
+    :x (point-x (win-geometry-min geom))
+    :y (point-y (win-geometry-max geom)))
+   (make-point
+    :x (point-x (win-geometry-max geom))
+    :y (point-y (win-geometry-max geom)))))
+
+(defun andmap (fn data)
+  (if (= (length data) 1)
+      (funcall fn (car data))
+      (if (funcall fn (car data))
+          (andmap fn (cdr data))
+          nil)))
+
+(defun check-point-inside-geom (point geom)
+    (and (< (point-x (win-geometry-min geom))
+            (point-x point))
+         (> (point-x (win-geometry-max geom))
+            (point-x point))
+         (< (point-y (win-geometry-min geom))
+            (point-y point))
+         (> (point-y (win-geometry-max geom))
+            (point-y point))))
+
+(defun check-overlap (geom graph)
+  (loop for key being the hash-keys in graph using (hash-value other-geom)
+        ;; for other-geom = (win-node-geometry (gethash key graph))
+        for (ul ur bl br) = (geom->corners geom)
+        for (other-ul other-ur other-bl other-br) = (geom->corners other-geom)
+        for check-geom = (lambda (p) (check-point-inside-geom p other-geom))
+        for check-other-geom = (lambda (p) (check-point-inside-geom p geom))
+        for overlap = (and
+                       (andmap check-geom '(ul ur bl br))
+                       (andmap check-other-geom '(other-ul other-ur other-bl other-br)))
+        when overlap
+        do (return nil)
+        finally (return geom)))
+
+(defun make-adjacent-region (source width height side)
+  (cond
+    ((equal side 'up)
+     (%make-win-geometry
+      :center (make-point
+               :x (point-x (win-geometry-center source))
+               :y (- (point-y (win-geometry-min source))
+                     (/ 2 height)))
+      :min (make-point
+            :x (- (point-x (win-geometry-center source))
+                  (/ 2 width))
+            :y (- (point-y (win-geometry-min source))
+                  height))
+      :max (make-point
+            :x (+ (point-x (win-geometry-center source))
+                  (/ 2 width))
+            :y (point-y (win-geometry-min source)))))
+    ((equal side 'down)
+     (%make-win-geometry
+      :center (make-point
+               :x (point-x (win-geometry-center source))
+               :y (+ (point-y (win-geometry-max source))
+                     (/ 2 height)))
+      :min (make-point
+            :x (- (point-x (win-geometry-center source))
+                  (/ 2 width))
+            :y (point-y (win-geometry-max source)))
+      :max (make-point
+            :x (+ (point-x (win-geometry-center source))
+                  (/ 2 width))
+            :y (+ (point-y (win-geometry-max source))
+                  height))))
+    ((equal side 'left)
+     (%make-win-geometry
+      :center (make-point
+               :x (+ (point-x (win-geometry-center source))
+                     (/ 2 width))
+               :y (point-y (win-geometry-center source)))
+      :min (make-point
+            :x (- (point-x (win-geometry-min source))
+                  width)
+            :y (- (point-y (win-geometry-center source))
+                  (/ 2 height)))
+      :max (make-point
+            :x (point-x (win-geometry-min source))
+            :y (+ (point-y (win-geometry-center source))
+                  (/ 2 height)))))
+    ((equal side 'right)
+     (%make-win-geometry
+      :center (make-point
+               :x (+ (point-x (win-geometry-center source))
+                     (/ 2 width))
+               :y (+ (point-y (win-geometry-max source))
+                     (/ 2 height)))
+      :min (make-point
+            :x (point-x (win-geometry-center source))
+            :y (- (point-y (win-geometry-center source))
+                  (/ 2 height)))
+      :max (make-point
+            :x (+ (point-x (win-geometry-center source))
+                  (/ 2 width))
+            :y (+ (point-y (win-geometry-center source))
+                  (/ 2 height)))))))
+
+;; TODO Make BFS runner for each node.
+(defun find-window-location (geom root-win-key graph)
+  "Takes a specified window geometry and finds a place for that
+   window as close to the current window as possible"
+  (let* ((root-node (gethash root-win-key graph))
+         (queue (make-instance 'cl-containers:basic-queue))
+         (current-side 0)
+         (width (- (point-x (win-geometry-max geom)) (point-x (win-geometry-min geom))))
+         (height (- (point-y (win-geometry-max geom)) (point-y (win-geometry-min geom)))))
+    (enqueue-edges root-node queue current-side)
+    (loop
+      with candidates = nil
+      while (not (cl-containers:empty-p queue))
+      for edge = (cl-containers:dequeue queue)
+      ;;for source = (gethash (edge-source-node edge) graph)
+      for source = (win-node-geometry (gethash (edge-source-node edge) graph))
+      ;; (or (eq (edge-dir edge) 'up) (eq (edge-dir edge) 'down))
+      ;; (or (eq (edge-dir edge) 'left) (eq (edge-dir edge) 'right))
+      for place = (cond
+                    ((equal (edge-dist edge) 'inf)
+                     (make-adjacent-region source width height (edge-dir edge)))
+                    ((and (eq (edge-dir edge) 'up) (<= height (edge-dist edge)))
+                     (check-overlap
+                      (make-adjacent-region source width height 'up)
+                      graph))
+                    ((and (eq (edge-dir edge) 'down) (<= height (edge-dist edge)))
+                     (check-overlap
+                      (make-adjacent-region source width height 'down)
+                      graph))
+                    ((and (eq (edge-dir edge) 'left) (<= width (edge-dist edge)))
+                     (check-overlap
+                      (make-adjacent-region source width height 'left)
+                      graph))
+                    ((and (eq (edge-dir edge) 'right) (<= width (edge-dist edge)))
+                     (check-overlap
+                      (make-adjacent-region source width height 'right)
+                      graph))
+                    (t nil))
+      do (incf current-side)
+      do (enqueue-edges (gethash (edge-source-node edge) graph) queue current-side)
+      do (when (not (null place))
+           (setq candidates (cons place candidates)))
+      finally (return candidates))))))
+
+;; TODO Make function to check the sides of each node.
+
+;; TODO
+;; Make hashtable with xwin ID as the key.
+;; Window node as the value.
+;; Look at pan-window and find-window-to-side for filling the slots in the node.
+;;
+(defun add-window-to-graph (win)
+  (dformat 0 "~a~%" win)
+  (let* ((init-geom (make-win-geometry win))
+         (win-list (group-windows (current-group)))
+         (geom (find-window-location
+                init-geom
+                (xlib:window-id (window-xwin (current-window)))
+                *window-graph*)))
+    (setf (gethash (xlib:window-id (window-xwin win)) *window-graph*)
+          (make-win-node
+           :win win
+           :geometry geom
+           :up (multiple-value-bind (node dist)
+                   (locate-window-to-side win win-list "up")
+                 (if (or (null node) (null dist))
+                     (make-edge :source-node win :target-node nil :dir 'up :dist 'inf)
+                     (make-edge :source-node win :target-node (win-node-win node) :dir 'up :dist dist)))
+           :down (multiple-value-bind (node dist)
+                     (locate-window-to-side win win-list "down")
+                   (if (or (null node) (null dist))
+                       (make-edge :source-node win :target-node nil :dir 'up :dist 'inf)
+                       (make-edge :source-node win :target-node (win-node-win node) :dir 'down :dist dist)))
+           :left (multiple-value-bind (node dist)
+                     (locate-window-to-side win win-list "left")
+                   (if (or (null node) (null dist))
+                       (make-edge :source-node win :target-node nil :dir 'up :dist 'inf)
+                       (make-edge :source-node win :target-node (win-node-win node) :dir 'left :dist dist)))
+           :right (multiple-value-bind (node dist)
+                      (locate-window-to-side win win-list "right")
+                    (if (or (null node) (null dist))
+                        (make-edge :source-node win :target-node nil :dir 'up :dist 'inf)
+                        (make-edge :source-node win :target-node (win-node-win node) :dir 'right :dist dist)))))
+    (float-window-move-resize
+     win
+     :x (point-x (win-geometry-min geom))
+     :y (point-y (win-geometry-min geom))
+     :width (- (point-x (win-geometry-max geom))
+               (point-x (win-geometry-min geom)))
+     :height (- (point-y (win-geometry-max geom))
+                (point-y (win-geometry-min geom)))))
+  ;; TODO Actually move window to position specified by calculated geometry.
+  ;; TODO Update other windows in graph
+  ;; Probably just re-evaluate the windows on each side of the current window.
+  )
+
+;; TODO
+;; Call every time a window is moved.
+;; Change the window's closest neighbors.
+;; Find all instances of it and update the nodes where it has changed.
+(defun update-window-graph (win))
+
+;; TODO
+;; Call every time a window is removed from the list.
+;; Remove its place in the hash table and update all nodes that have an edge to it.
+(defun remove-window-from-graph (win))
+
+(add-hook *destroy-window-hook* 'remove-window-from-graph)
 
 ;; Clear rules
 (clear-window-placement-rules)
@@ -771,7 +1043,7 @@ To activate a view:
 ;; TIP: if the :restore flag is set then group dump is restored even for an
 ;; existing group using *data-dir*/restore file.
 ;;(define-frame-preference "Default"
-;;j  ;; frame raise lock (lock AND raise == jumpto)
+;;  ;; frame raise lock (lock AND raise == jumpto)
 ;;  (0 t nil :class "Konqueror" :role "...konqueror-mainwindow")
 ;;  (1 t nil :class "XTerm"))
 
