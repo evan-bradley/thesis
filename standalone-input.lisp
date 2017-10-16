@@ -794,10 +794,10 @@ functions are passed this structure as their first argument."
 (defun create-coordinate-list (command-list)
   (reduce
    (lambda (lst item)
-     (let* ((start-pos (if (equalp lst nil) 0 (+ (second (first (last lst))) 2))))
+     (let* ((start-pos (if (equalp lst nil) 0 (+ (second (first (last lst))) 1))))
        (append lst
                (list (list start-pos
-                           (+ start-pos (length (second item)) -1)
+                           (+ start-pos (length (second item)))
                            (first item))))))
    command-list
    :initial-value nil))
@@ -806,7 +806,7 @@ functions are passed this structure as their first argument."
   (declare (ignore input))
   (reduce (lambda (lst item)
             (if (and (>= pos (first item))
-                     (<= pos (second item)))
+                     (< pos (second item)))
                 (third item)
                 lst))
           (create-coordinate-list *default-command-list*)
