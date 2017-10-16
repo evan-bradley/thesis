@@ -16,7 +16,8 @@
                #:cl-ppcre
                #:clx
                #:sb-posix
-               #:dbus)
+               #:dbus
+               #:cl-containers)
   :components ((:file "package")
                (:file "primitives")
                (:file "wrappers")
