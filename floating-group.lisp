@@ -10,6 +10,8 @@
    (last-x :initform 0 :accessor float-window-last-x)
    (last-y :initform 0 :accessor float-window-last-y)))
 
+(defvar *move-float-window-hook* nil)
+
 (defvar *float-window-border* 1)
 (defvar *float-window-title-height* 21)
 
@@ -49,6 +51,8 @@
                 (xlib:drawable-height xwin) height
                 (window-height win) height))))))
 
+;; TODO: Re-draw bar if windows are in view of screen, just to be safe.
+;; TODO: Make a hook that is run every time this function runs.
 (defun pan-windows (group &key x y)
   (map 'list #'(lambda (win)
                  (let ((new-x (if (null x)
@@ -290,7 +294,8 @@
             (update-configuration window)
             ;; don't forget to update the cache
             (setf (window-x window) (xlib:drawable-x (window-parent window))
-                  (window-y window) (xlib:drawable-y (window-parent window)))))))))
+                  (window-y window) (xlib:drawable-y (window-parent window)))
+            (run-hook-with-args *move-float-window-hook* window)))))))
 
 (defmethod group-button-press ((group float-group) x y where)
   (declare (ignore x y where))

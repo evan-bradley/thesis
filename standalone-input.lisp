@@ -307,12 +307,11 @@ match with an element of the completions."
 (defun process-key (bar prompt input key &key require-match)
   (cond
     ((and (listp key) (eq (car key) :type) (eq (getf key :type) :button-press))
-     ;; The input positions start at ~27px to the right, and are 9px wide.
      (let*
-         ;; TODO: Properly calculate this.
-         ((pos (round (/ (max 0 (- (getf key :x) 27)) 9)))
-          (cmd (input-bar-search-command input pos))
-          (prompt-width (text-line-width (input-bar-font bar) prompt :translate #'translate-id)))
+         ((prompt-width (text-line-width (input-bar-font bar) prompt :translate #'translate-id))
+          (char-width (text-line-width (input-bar-font bar) " " :translate #'translate-id))
+          (pos (floor (/ (- (getf key :x) prompt-width) char-width)))
+          (cmd (input-bar-search-command input pos)))
        (case (getf key :code)
          (1
           (if (< (getf key :x) prompt-width)
@@ -324,8 +323,7 @@ match with an element of the completions."
               (input-bar-goto-char input pos)))
          (2
           (unless (eq cmd nil)
-            (eval cmd)
-            ;;(shutdown-input-bar-window bar)
+            (with-restarts-menu (eval cmd))
             (throw :abort t)))
          (3 ;; TODO: Deduplicate this.
           (if (< (getf key :x) prompt-width)
