@@ -327,6 +327,58 @@
   (setq *pan-offset-y* (+ *pan-offset-y* y))
   (pan-windows (current-group) :x x :y y))
 
+;; TODO: Move the mouse to maintain its position relative to the window.
+(defcommand maximize
+    (&optional (width-div 1) (height-div 1) (t-b "top") (l-r "left"))
+    ((:number "Enter width divisor ")
+     (:number "Enter height divisor ")
+     (:string "Enter top/bottom ")
+     (:string "Enter side "))
+  "Maximizes the current window"
+  (let* ((window (current-window))
+         (new-width (/ (- (screen-width (current-screen))
+                          (- (xlib:drawable-width (window-parent window))
+                             (window-width window))
+                          (* 2 *float-window-border*))
+                       width-div))
+         (new-height (/ (- (screen-height (current-screen))
+                           (- (xlib:drawable-height (window-parent window))
+                              (window-height window))
+                           (* 2 *float-window-border*))
+                        height-div))
+         (new-x (switch (l-r :test #'equal)
+                  ("left"
+                   0)
+                  ("right"
+                   (- (screen-width (current-screen)) new-width))))
+         (new-y (switch (t-b :test #'equal)
+                  ("top"
+                   0)
+                  ("bottom"
+                   (- (screen-height (current-screen)) new-height)))))
+    (float-window-move-resize
+     window
+     :x new-x
+     :y new-y
+     :width new-width
+     :height new-height)
+    ;; Don't forget to update the cache
+    (setf (window-x window) (xlib:drawable-x (window-parent window))
+          (window-y window) (xlib:drawable-y (window-parent window)))
+    (run-hook-with-args *move-float-window-hook* window)))
+
+(defcommand left () ()
+  "Temporary until I implement bar subtitutions"
+  (eval-command (format nil "pan-group ~a ~a"
+                        (screen-width (current-screen))
+                        0)))
+
+(defcommand right () ()
+  "Temporary until I implement bar subtitutions"
+  (eval-command (format nil "pan-group ~a ~a"
+                        (* -1 (screen-width (current-screen)))
+                        0)))
+
 ;;(defcommand float-window-alter (win &key x y width height) ((:rest "Window (, x, y, width, height): "))
 ;;  "Create a floating window group with the specified name, but do not switch to it."
 ;;  (float-window-move-resize win :x x :y y :width width :height height))

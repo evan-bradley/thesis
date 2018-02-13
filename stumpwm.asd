@@ -38,6 +38,8 @@
                (:file "events")
                (:file "window")
                (:file "floating-group")
+               (:file "graph")
+               (:file "zooming")
                (:file "tile-window")
                (:file "tile-group")
                (:file "window-placement")

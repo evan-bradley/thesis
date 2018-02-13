@@ -1,4 +1,5 @@
 ;; Copyright (C) 2003-2008 Shawn Betts
+;; Copyright (C) 2017-2018 Evan Bradley
 ;;
 ;;  This file is part of stumpwm.
 ;;
@@ -19,15 +20,6 @@
 ;; Commentary:
 ;;
 ;; This file sloppily makes the input bar modular.
-;; TODO: Make two input strings for the bar.
-;;       One contains the actual input in the bar, while the other is a representation
-;;       changed to make the output nicer, which is the version displayed on the screen.
-;;       e.g. backend string: [[pan 1920 0][right]] [[pan -1920 0][left]]
-;;           frontend string: right left
-;;       The frontend string will be operated on most of the time, except for when
-;;       certain formatting is broken, after which portions will be replaced by the
-;;       backend string as needed, which will contain all formatting cues.
-;;       This should work a lot like links in org-mode.
 ;;
 ;; Code:
 (in-package :stumpwm)
@@ -43,7 +35,7 @@
 
 (defvar *default-command-list*
   '(((eval-command "delete") "x")
-    ((eval-command "maximize 1 1") "^")
+    ((eval-command "maximize 1 1 top left") "^")
     ((eval-command "left") "<")
     ((eval-command "right") ">")))
 
@@ -927,3 +919,15 @@ supplied, the text will appear in the prompt."
     ;;  (throw 'error :abort))
     (when (plusp (length cmd))
       (eval-command cmd t))))
+
+;;(defvar *global-bar* (make-input-bar))
+
+#|(defcommand start-global-bar () (:rest)
+"Read a command from the user. @var{initial-text} is optional. When
+supplied, the text will appear in the prompt."
+(let ((cmd (completing-bar-read *global-bar* ": " (all-commands))))
+  ;;(unless cmd
+  ;;  (throw 'error :abort))
+  (when (plusp (length cmd))
+    ;;(eval-command cmd t)
+    (echo cmd))))|#

@@ -1,0 +1,66 @@
+TODO: Wrap desktop-scale function.
+TODO: Organize everything into hooks.
+TODO: Idea: automatically place newly opened windows somewhere on plane.
+      Addition: user toggle whether to automatically pan and focus those windows.
+DONE: Keys/commands to resize windows to certain sizes (full/half-screen, etc.)
+      This will take shape as a sort-of tiling mode.
+TODO: Command to adjust window to certain position.
+      Find window to particular side and align current window to that one.
+      Offer options for both moving and resizing on each side of the window.
+      Make quick option for adjusting to the closest window.
+TODO: Consider regex or template-string method to have live-updating commands.
+      Look into StumpWM timers for this.
+TODO: Improve window search algorithms.
+      What needs to be done for this?
+DONE: UTF-8 support in bar.
+DONE: Automatically fill bar above windows with commands.
+TODO: Save window bar strings.
+      Look into StumpWM state-saving.
+DONE: Why do the bars erase all their text sometimes?
+DONE: Properly size bar on top of application.
+DONE: Improve styling (Change orange wrap-around to another color, etc).
+TODO: Next/previous window functions.
+      Should operate inside view and simply operate on cycle.
+      Eventually use reinforcement learning to predict the next window.
+      Also include option for ordering based on focus (like Alt+Tab).
+DONE: Properly exit from bar after executing a command.
+TODO: Take everything from .stumpwmrc and put into proper files.
+      Could be split into overview and non-overview functions.
+TODO: Fill the bar with spaces to allow for typing anywhere.
+      Delete spaces on the end to keep it even, and fill it with spaces when
+      words are deleted.
+DONE: Improve maximize function.
+DONE: Get rid of cursor when not clicked.
+DONE: Right arrow kills window?
+TODO: Redraw bar as window is resized.
+DONE: Base colors off current color variables.
+TODO: Bonus: Refresh current bars.
+TODO: K-means clustering
+TODO: Tree-style window list bar on the side for seeing which applications are open
+       (plus more?)
+       This comes from the tree-style tabs extensions on Firefox, which list many tabs.
+TODO: StumpWM echoes "Command T is not found" occasionally when executing on the bar.
+TODO: Idea: radially zoom out. So zoom out to bounding box of windows
+      surrounding current window, then the windows surrounding those, etc.
+      This would probably be tricky to implement, since it would ideally create
+      a perfect-ish bounding box of the first n windows around the current center window.
+      Idea for implementation: get bounding box of (up down left right), then
+      get the bounding box of the up window for the up window, the down for the down,
+      etc. So (up^2 down^2 left^2 right^2) ... (up^n down^n left^n right^n)
+TODO: Move screen when the window is dragged to the side.
+      This will need timing to work well.
+TODO: Visual mode to select and move windows.
+TODO: Allow selecting windows for use as input to a bar function.
+      e.g. Select windows with Shift+Button1, save those to a buffer, and when
+      the function is executed, take those windows as input to the function.
+      Possibly map the function across each for single-window functions, and just
+      bundle them up into a list for multiple-window functions.
+TODO: Finalize bar semantics.
+      This should entail generating a hash table of each of the "default commands"
+      that maps the textual representation to the command.
+      Alternatively, Lisp function names and commands in the user's PATH can be used.
+      Order should be: hash table, Lisp function, PATH command.
+      Input to these functions should depend on the type of function
+      e.g. Anything within Lisp should get the window being clicked on
+      (or selected windows), while PATH commmands should get some bundle of text
+      describing the window somehow.
