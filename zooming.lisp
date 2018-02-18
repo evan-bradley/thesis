@@ -24,7 +24,7 @@
 (in-package :stumpwm)
 
 (defvar *current-scale* 100)
-(defvar *scaled-hook* '(overview-mouse-control))
+(defvar *scaled-hook* nil)
 (defvar *views* (make-array 10))
 (defvar *current-offset* (make-point :x 0 :y 0))
 
@@ -192,26 +192,29 @@
      (group-windows (current-group)))))
 
 (defvar *zoom-map*
-  (list
-   (list (kbd "M-h") (list-to-string (list "pan-group " (+ 0 (head-width (current-head))) " " 0)))
-   (list (kbd "M-j") (list-to-string (list "pan-group " 0 " " (- 0 (head-height (current-head))))))
-   (list (kbd "M-k") (list-to-string (list "pan-group " 0 " " (+ 0 (head-height (current-head))))))
-   (list (kbd "M-l") (list-to-string (list "pan-group " (- 0 (head-width (current-head))) " " 0)))
-   (list (kbd "M-H") "move-to-window left")
-   (list (kbd "M-J") "move-to-window down")
-   (list (kbd "M-K") "move-to-window up")
-   (list (kbd "M-L") "move-to-window right"))
+  '(((kbd "M-h") (list-to-string (list "pan-group " (+ 0 (screen-width (current-screen))) " " 0)))
+   ((kbd "M-j") (list-to-string (list "pan-group " 0 " " (- 0 (screen-height (current-screen))))))
+   ((kbd "M-k") (list-to-string (list "pan-group " 0 " " (+ 0 (screen-height (current-screen))))))
+   ((kbd "M-l") (list-to-string (list "pan-group " (- 0 (screen-width (current-screen))) " " 0)))
+   ((kbd "M-H") "move-to-window left")
+   ((kbd "M-J") "move-to-window down")
+   ((kbd "M-K") "move-to-window up")
+   ((kbd "M-L") "move-to-window right"))
   "Keyamp set when in a zooming state for interacting with and manipulating windows.")
 
 (defun toggle-zoom-minor-mode (enable)
   (if enable
-      (map 'nil (lambda (zoom-binding) (define-key
-                                      *top-map*
-                                      (first zoom-binding)
-                                    (second zoom-binding))) *zoom-map*)
-      (map 'nil (lambda (zoom-binding) (undefine-key
-                                      *top-map*
-                                      (first zoom-binding))) *zoom-map*)))
+      (map 'nil (lambda (zoom-binding)
+                  (define-key
+                      *top-map*
+                      (eval (first zoom-binding))
+                      (eval (second zoom-binding))))
+           *zoom-map*)
+      (map 'nil (lambda (zoom-binding)
+                  (undefine-key
+                   *top-map*
+                   (eval (first zoom-binding))))
+           *zoom-map*)))
 
 (defun pan-centered-closure ()
   (let ((offset-x 0) (offset-y 0))
@@ -342,6 +345,8 @@
                                             :discard-p t)
                until (eq ev :done))
       (ungrab-pointer)))))
+
+(add-hook *scaled-hook* 'overview-mouse-control)
 
 ;; TODO State mask
 ;; (multiple-value-bind (relx rely same-screen-p child state-mask)
