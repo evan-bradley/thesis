@@ -1,13 +1,13 @@
 ;; Copyright (C) 2006-2008 Matthew Kennedy
 ;;
-;;  This file is part of stumpwm.
+;;  This file is part of thesiswm.
 ;;
-;; stumpwm is free software; you can redistribute it and/or modify
+;; thesiswm is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation; either version 2, or (at your option)
 ;; any later version.
 
-;; stumpwm is distributed in the hope that it will be useful,
+;; thesiswm is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
@@ -18,47 +18,47 @@
 
 ;; Commentary:
 ;;
-;; Translate between stumpwm key names and keysym names.
+;; Translate between thesiswm key names and keysym names.
 ;;
 ;; Code:
 
-(in-package #:stumpwm)
+(in-package #:thesiswm)
 
-(defvar *stumpwm-name->keysym-name-translations* (make-hash-table :test #'equal)
-  "Hashtable mapping from stumpwm key names to keysym names.")
+(defvar *thesiswm-name->keysym-name-translations* (make-hash-table :test #'equal)
+  "Hashtable mapping from thesiswm key names to keysym names.")
 
-(defun define-keysym-name (stumpwm-name keysym-name)
+(defun define-keysym-name (thesiswm-name keysym-name)
   "Define a mapping from a STUMPWM-NAME to KEYSYM-NAME.
 This function is used to translate Emacs-like names to keysym
 names."
-  (setf (gethash stumpwm-name *stumpwm-name->keysym-name-translations*)
+  (setf (gethash thesiswm-name *thesiswm-name->keysym-name-translations*)
         keysym-name))
 
-(defun stumpwm-name->keysym-name (stumpwm-name)
+(defun thesiswm-name->keysym-name (thesiswm-name)
   (multiple-value-bind (value present-p)
-      (gethash stumpwm-name *stumpwm-name->keysym-name-translations*)
+      (gethash thesiswm-name *thesiswm-name->keysym-name-translations*)
     (declare (ignore present-p))
     value))
 
-(defun keysym-name->stumpwm-name (keysym-name)
+(defun keysym-name->thesiswm-name (keysym-name)
   (maphash (lambda (k v)
              (when (equal v keysym-name)
-               (return-from keysym-name->stumpwm-name k)))
-           *stumpwm-name->keysym-name-translations*))
+               (return-from keysym-name->thesiswm-name k)))
+           *thesiswm-name->keysym-name-translations*))
 
-(defun stumpwm-name->keysym (stumpwm-name)
+(defun thesiswm-name->keysym (thesiswm-name)
   "Return the keysym corresponding to STUMPWM-NAME.
 If no mapping for STUMPWM-NAME exists, then fallback by calling
 KEYSYM-NAME->KEYSYM."
-  (let ((keysym-name (stumpwm-name->keysym-name stumpwm-name)))
-    (keysym-name->keysym (or keysym-name stumpwm-name))))
+  (let ((keysym-name (thesiswm-name->keysym-name thesiswm-name)))
+    (keysym-name->keysym (or keysym-name thesiswm-name))))
 
-(defun keysym->stumpwm-name (keysym)
-  "Return the stumpwm key name corresponding to KEYSYM.
-If no mapping for the stumpwm key name exists, then fall back by
+(defun keysym->thesiswm-name (keysym)
+  "Return the thesiswm key name corresponding to KEYSYM.
+If no mapping for the thesiswm key name exists, then fall back by
 calling KEYSYM->KEYSYM-NAME."
   (let ((keysym-name (keysym->keysym-name keysym)))
-    (or (keysym-name->stumpwm-name keysym-name)
+    (or (keysym-name->thesiswm-name keysym-name)
         keysym-name)))
 
 (define-keysym-name "RET" "Return")

@@ -1,13 +1,13 @@
 ;; Copyright (C) 2007-2008 Shawn Betts
 ;;
-;;  This file is part of stumpwm.
+;;  This file is part of thesiswm.
 ;;
-;; stumpwm is free software; you can redistribute it and/or modify
+;; thesiswm is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation; either version 2, or (at your option)
 ;; any later version.
 
-;; stumpwm is distributed in the hope that it will be useful,
+;; thesiswm is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
@@ -23,7 +23,7 @@
 ;;
 ;; Code:
 
-(in-package #:stumpwm)
+(in-package #:thesiswm)
 
 (require :sb-introspect)
 
@@ -39,9 +39,9 @@
                               (let ((fn (if (find #\( name :test 'char=)
                                             ;; handle (setf <symbol>) functions
                                             (with-standard-io-syntax
-                                              (let ((*package* (find-package :stumpwm)))
+                                              (let ((*package* (find-package :thesiswm)))
                                                 (fdefinition (read-from-string name))))
-                                            (symbol-function (find-symbol (string-upcase name) :stumpwm))))
+                                            (symbol-function (find-symbol (string-upcase name) :thesiswm))))
                                     (*print-pretty* nil))
                                 (format s "@defun {~a} ~{~a~^ ~}~%~a~&@end defun~%~%"
                                         name
@@ -52,7 +52,7 @@
 (defun generate-macro-doc (s line)
   (ppcre:register-groups-bind (name) ("^%%% (.*)" line)
                               (dprint name)
-                              (let* ((symbol (find-symbol (string-upcase name) :stumpwm))
+                              (let* ((symbol (find-symbol (string-upcase name) :thesiswm))
                                      (*print-pretty* nil))
                                 (format s "@defmac {~a} ~{~a~^ ~}~%~a~&@end defmac~%~%"
                                         name
@@ -63,7 +63,7 @@
 (defun generate-variable-doc (s line)
   (ppcre:register-groups-bind (name) ("^### (.*)" line)
                               (dprint name)
-                              (let ((sym (find-symbol (string-upcase name) :stumpwm)))
+                              (let ((sym (find-symbol (string-upcase name) :thesiswm)))
                                 (format s "@defvar ~a~%~a~&@end defvar~%~%"
                                         name (documentation sym 'variable))
                                 t)))
@@ -71,7 +71,7 @@
 (defun generate-hook-doc (s line)
   (ppcre:register-groups-bind (name) ("^\\$\\$\\$ (.*)" line)
                               (dprint name)
-                              (let ((sym (find-symbol (string-upcase name) :stumpwm)))
+                              (let ((sym (find-symbol (string-upcase name) :thesiswm)))
                                 (format s "@defvr {Hook} ~a~%~a~&@end defvr~%~%"
                                         name (documentation sym 'variable))
                                 t)))
@@ -79,7 +79,7 @@
 (defun generate-command-doc (s line)
   (ppcre:register-groups-bind (name) ("^!!! (.*)" line)
     (dprint name)
-    (if-let (symbol (find-symbol (string-upcase name) :stumpwm))
+    (if-let (symbol (find-symbol (string-upcase name) :thesiswm))
       (let ((cmd (symbol-function symbol))
             (*print-pretty* nil))
         (format s "@deffn {Command} ~a ~{~a~^ ~}~%~a~&@end deffn~%~%"
@@ -89,7 +89,7 @@
         t)
       (warn "Symbol ~A not found in package STUMPWM" name))))
 
-(defun generate-manual (&key (in #p"stumpwm.texi.in") (out #p"stumpwm.texi"))
+(defun generate-manual (&key (in #p"thesiswm.texi.in") (out #p"thesiswm.texi"))
   (let ((*print-case* :downcase))
     (with-open-file (os out :direction :output :if-exists :supersede)
       (with-open-file (is in :direction :input)

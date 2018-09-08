@@ -1,13 +1,13 @@
 ;; Copyright (C) 2008 Shawn Betts
 ;;
-;;  This file is part of stumpwm.
+;;  This file is part of thesiswm.
 ;;
-;; stumpwm is free software; you can redistribute it and/or modify
+;; thesiswm is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation; either version 2, or (at your option)
 ;; any later version.
 
-;; stumpwm is distributed in the hope that it will be useful,
+;; thesiswm is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
@@ -22,7 +22,7 @@
 ;;
 ;; Code:
 
-(in-package #:stumpwm)
+(in-package #:thesiswm)
 
 (export '())
 
@@ -154,7 +154,7 @@ KMAPS are enabled"
       (add-hook *key-press-hook* 'which-key-mode-key-press-hook)))
 
 (defcommand modifiers () ()
-  "List the modifiers stumpwm recognizes and what MOD-X it thinks they're on."
+  "List the modifiers thesiswm recognizes and what MOD-X it thinks they're on."
   (message "~@{~5@a: ~{~(~a~)~^ ~}~%~}"
            "Meta" (modifiers-meta *modifiers*)
            "Alt" (modifiers-alt *modifiers*)

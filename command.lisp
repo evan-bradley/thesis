@@ -1,13 +1,13 @@
 ;; Copyright (C) 2003-2008 Shawn Betts
 ;;
-;;  This file is part of stumpwm.
+;;  This file is part of thesiswm.
 ;;
-;; stumpwm is free software; you can redistribute it and/or modify
+;; thesiswm is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation; either version 2, or (at your option)
 ;; any later version.
 
-;; stumpwm is distributed in the hope that it will be useful,
+;; thesiswm is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
@@ -22,16 +22,16 @@
 ;;
 ;; Code:
 
-(in-package #:stumpwm)
+(in-package #:thesiswm)
 
 (export '(argument-line-end-p
           argument-pop
           argument-pop-or-read
           argument-pop-rest
-          define-stumpwm-command
+          define-thesiswm-command
           defcommand
           defcommand-alias
-          define-stumpwm-type
+          define-thesiswm-type
           run-commands
           %interactivep%))
 
@@ -42,7 +42,7 @@
   name class args)
 
 (defvar *command-hash* (make-hash-table :test 'eq)
-  "A list of interactive stumpwm commands.")
+  "A list of interactive thesiswm commands.")
 
 (defvar *max-command-alias-depth* 10
   "")
@@ -80,7 +80,7 @@ A lisp variable
 @item :function
 A lisp function
 @item :command
-A stumpwm command as a string.
+A thesiswm command as a string.
 @item :key-seq
 A key sequence starting from *TOP-MAP*
 @item :window-number
@@ -106,13 +106,13 @@ A shell command
 @item :rest
 The rest of the input yes to be parsed.
 @item :module
-An existing stumpwm module
+An existing thesiswm module
 @end table
 
 Note that new argument types can be created with DEFINE-STUMPWM-TYPE.
 
 PROMPT can be string. In this case, if the corresponding argument is
-missing from an interactive call, stumpwm will use prompt for its
+missing from an interactive call, thesiswm will use prompt for its
 value using PROMPT. If PROMPT is missing or nil, then the argument is
 considered an optional interactive argument and is not prompted for
 when missing.
@@ -147,7 +147,7 @@ out, an element can just be the argument type."
                              :class ',group
                              :args ',interactive-args))))))
 
-(defmacro define-stumpwm-command (name (&rest args) &body body)
+(defmacro define-thesiswm-command (name (&rest args) &body body)
   "Deprecated. use `defcommand' instead."
   (check-type name string)
   (setf name (intern1 name))
@@ -259,7 +259,7 @@ only return active commands."
           (read-one-line (current-screen) prompt))
       (throw 'error :abort)))
 
-(defmacro define-stumpwm-type (type (input prompt) &body body)
+(defmacro define-thesiswm-type (type (input prompt) &body body)
   "Create a new type that can be used for command arguments. @var{type} can be any symbol. 
 
 When @var{body} is evaluated @var{input} is bound to the
@@ -268,7 +268,7 @@ argument-line. It is passed to @code{argument-pop},
 be used when prompting the user for the argument.
 
 @example
-\(define-stumpwm-type :symbol (input prompt)
+\(define-thesiswm-type :symbol (input prompt)
  (or (find-symbol (string-upcase
 		     (or (argument-pop input)
                          ;; Whitespace messes up find-symbol.
@@ -276,7 +276,7 @@ be used when prompting the user for the argument.
 		           (completing-read (current-screen)
 					  prompt
 					  ;; find all symbols in the
-					  ;;  stumpwm package.
+					  ;;  thesiswm package.
 					  (let (acc)
 					    (do-symbols (s (find-package \"STUMPWM\"))
 					      (push (string-downcase (symbol-name s)) acc))
@@ -291,13 +291,13 @@ be used when prompting the user for the argument.
 @end example
 
 This code creates a new type called @code{:symbol} which finds the
-symbol in the stumpwm package. The command @code{symbol} uses it and
+symbol in the thesiswm package. The command @code{symbol} uses it and
 then describes the symbol."
   `(setf (gethash ,type *command-type-hash*)
     (lambda (,input ,prompt)
       ,@body)))
 
-(define-stumpwm-type :y-or-n (input prompt)
+(define-thesiswm-type :y-or-n (input prompt)
   (let ((s (or (argument-pop input)
                (read-one-line (current-screen) (concat prompt "(y/n): ")))))
     (equal s "y")))
@@ -317,10 +317,10 @@ then describes the symbol."
         (throw 'error (format nil "No such symbol: ~a::~a."
                               (package-name pkg) var)))))
 
-(define-stumpwm-type :variable (input prompt)
+(define-thesiswm-type :variable (input prompt)
   (lookup-symbol (argument-pop-or-read input prompt)))
 
-(define-stumpwm-type :function (input prompt)
+(define-thesiswm-type :function (input prompt)
   (multiple-value-bind (sym pkg var)
       (lookup-symbol (argument-pop-or-read input prompt))
     (if (symbol-function sym)
@@ -328,13 +328,13 @@ then describes the symbol."
         (throw 'error (format nil "the symbol ~a::~a has no function."
                               (package-name pkg) var)))))
 
-(define-stumpwm-type :command (input prompt)
+(define-thesiswm-type :command (input prompt)
   (or (argument-pop input)
       (completing-read (current-screen)
                        prompt
                        (all-commands))))
 
-(define-stumpwm-type :key-seq (input prompt)
+(define-thesiswm-type :key-seq (input prompt)
   (labels ((update (seq)
              (message "~a: ~{~a ~}"
                       prompt
@@ -347,7 +347,7 @@ then describes the symbol."
             (nreverse (second (multiple-value-list
                                (read-from-keymap (top-maps) #'update)))))))))
 
-(define-stumpwm-type :window-number (input prompt)
+(define-thesiswm-type :window-number (input prompt)
   (let ((n (or (argument-pop input)
                (completing-read (current-screen)
                                 prompt
@@ -361,7 +361,7 @@ then describes the symbol."
             (window-number win)
             (throw 'error "No Such Window."))))))
 
-(define-stumpwm-type :number (input prompt)
+(define-thesiswm-type :number (input prompt)
   (let ((n (or (argument-pop input)
                (read-one-line (current-screen) prompt))))
     (when n
@@ -372,27 +372,27 @@ then describes the symbol."
           (throw 'error "Number required."))))))
 
 
-(define-stumpwm-type :string (input prompt)
+(define-thesiswm-type :string (input prompt)
   (or (argument-pop input)
       (read-one-line (current-screen) prompt)))
 
-(define-stumpwm-type :password (input prompt)
+(define-thesiswm-type :password (input prompt)
   (or (argument-pop input)
       (read-one-line (current-screen) prompt :password t)))
 
-(define-stumpwm-type :key (input prompt)
+(define-thesiswm-type :key (input prompt)
   (let ((s (or (argument-pop input)
                (read-one-line (current-screen) prompt))))
     (when s
       (kbd s))))
 
-(define-stumpwm-type :window-name (input prompt)
+(define-thesiswm-type :window-name (input prompt)
   (or (argument-pop input)
       (completing-read (current-screen) prompt
                        (mapcar 'window-name
                                (group-windows (current-group))))))
 
-(define-stumpwm-type :direction (input prompt)
+(define-thesiswm-type :direction (input prompt)
   (let* ((values '(("up" :up)
                    ("down" :down)
                    ("left" :left)
@@ -402,7 +402,7 @@ then describes the symbol."
     (or dir
         (throw 'error "No matching direction."))))
 
-(define-stumpwm-type :gravity (input prompt)
+(define-thesiswm-type :gravity (input prompt)
 "Set the current window's gravity."
   (let* ((values '(("center" :center)
                    ("top" :top)
@@ -431,7 +431,7 @@ then describes the symbol."
           (find-if #'match-whole (screen-groups screen))
           (find-if #'match-partial (screen-groups screen))))))
 
-(define-stumpwm-type :group (input prompt)
+(define-thesiswm-type :group (input prompt)
   (let ((match (select-group (current-screen)
                              (or (argument-pop input)
                                  (completing-read (current-screen) prompt
@@ -440,7 +440,7 @@ then describes the symbol."
     (or match
         (throw 'error "No Such Group."))))
 
-(define-stumpwm-type :frame (input prompt)
+(define-thesiswm-type :frame (input prompt)
   (declare (ignore prompt))
   (if-let ((arg (argument-pop input)))
     (or (find arg (group-frames (current-group))
@@ -451,13 +451,13 @@ then describes the symbol."
     (or (choose-frame-by-number (current-group))
         (throw 'error :abort))))
 
-(define-stumpwm-type :shell (input prompt)
+(define-thesiswm-type :shell (input prompt)
   (declare (ignore prompt))
   (let ((prompt (format nil "~A -c " *shell-program*)))
     (or (argument-pop-rest input)
         (completing-read (current-screen) prompt 'complete-program))))
 
-(define-stumpwm-type :rest (input prompt)
+(define-thesiswm-type :rest (input prompt)
   (or (argument-pop-rest input)
       (read-one-line (current-screen) prompt)))
 
@@ -538,12 +538,12 @@ user aborted."
                (message "Abort.")))))))
 
 (defun run-commands (&rest commands)
-  "Run each stumpwm command in sequence. This could be used if you're
+  "Run each thesiswm command in sequence. This could be used if you're
 used to ratpoison's rc file and you just want to run commands or don't
 know lisp very well. One might put the following in one's rc file:
 
 @example
-\(stumpwm:run-commands
+\(thesiswm:run-commands
   \"escape C-z\"
   \"exec firefox\"
   \"split\")

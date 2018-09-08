@@ -1,13 +1,13 @@
 ;; Copyright (C) 2003-2008 Shawn Betts
 ;;
-;;  This file is part of stumpwm.
+;;  This file is part of thesiswm.
 ;;
-;; stumpwm is free software; you can redistribute it and/or modify
+;; thesiswm is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation; either version 2, or (at your option)
 ;; any later version.
 
-;; stumpwm is distributed in the hope that it will be useful,
+;; thesiswm is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
@@ -19,11 +19,11 @@
 ;; Commentary:
 ;;
 ;; This file contains primitive data structures and functions used
-;; throughout stumpwm.
+;; throughout thesiswm.
 ;;
 ;; Code:
 
-(in-package :stumpwm)
+(in-package :thesiswm)
 
 (export '(*suppress-abort-messages*
           *suppress-frame-indicator*
@@ -81,7 +81,7 @@
           *screen-list*
           *initializing*
           *processing-existing-windows*
-          *executing-stumpwm-command*
+          *executing-thesiswm-command*
           *debug-level*
           *debug-expose-events*
           *debug-stream*
@@ -164,9 +164,9 @@
           modifiers-hyper
           modifiers-numlock
           ;; Conditions
-          stumpwm-condition
-          stumpwm-error
-          stumpwm-warning))
+          thesiswm-condition
+          thesiswm-error
+          thesiswm-warning))
 
 
 ;;; Message Timer
@@ -253,19 +253,19 @@ arguments: the current window and the last window (could be nil).")
 window group and frame")
 
 (defvar *start-hook* '()
-  "A hook called when stumpwm starts.")
+  "A hook called when thesiswm starts.")
 
 (defvar *quit-hook* '()
-  "A hook called when stumpwm quits.")
+  "A hook called when thesiswm quits.")
 
 (defvar *restart-hook* '()
-  "A hook called when stumpwm restarts.")
+  "A hook called when thesiswm restarts.")
 
 (defvar *internal-loop-hook* '()
-  "A hook called inside stumpwm's inner loop.")
+  "A hook called inside thesiswm's inner loop.")
 
 (defvar *event-processing-hook* '()
-  "A hook called inside stumpwm's inner loop, before the default event
+  "A hook called inside thesiswm's inner loop, before the default event
   processing takes place. This hook is run inside (with-event-queue ...).")
 
 (defvar *focus-frame-hook* '()
@@ -281,7 +281,7 @@ the frame as an argument.")
 the old frame (window is removed), and two new frames as arguments.")
 
 (defvar *message-hook* '()
-  "A hook called whenever stumpwm displays a message. The hook
+  "A hook called whenever thesiswm displays a message. The hook
 function is passed any number of arguments. Each argument is a
 line of text.")
 
@@ -291,7 +291,7 @@ run before the error is dealt with according to
 *top-level-error-action*.")
 
 (defvar *focus-group-hook* '()
-  "A hook called whenever stumpwm switches groups. It is called with 2 arguments: the current group and the last group.")
+  "A hook called whenever thesiswm switches groups. It is called with 2 arguments: the current group and the last group.")
 
 (defvar *key-press-hook* '()
   "A hook called whenever a key under *top-map* is pressed.
@@ -323,7 +323,7 @@ the command as a symbol.")
   "Called after a command is called. It is called with 1 argument:
 the command as a symbol.")
 
-;; Data types and globals used by stumpwm
+;; Data types and globals used by thesiswm
 
 (defvar *display* nil
   "The display for the X server")
@@ -473,7 +473,7 @@ and to *standard-output*.
 Valid values are :message, :break, :abort. :break will break to the
 debugger. This can be problematic because if the user hit's a
 mapped key the ENTIRE keyboard will be frozen and you will have
-to login remotely to regain control. :abort quits stumpwm.")
+to login remotely to regain control. :abort quits thesiswm.")
 
 (defvar *window-name-source* :title
   "This variable controls what is used for the window's name. The default is @code{:title}.
@@ -521,7 +521,7 @@ Use the window's resource name.
    (mapped-windows :initform () :accessor screen-mapped-windows :documentation
     "A list of all mapped windows. These are the raw xlib:window's. window structures are stored in groups.")
    (withdrawn-windows :initform () :accessor screen-withdrawn-windows :documentation
-    "A list of withdrawn windows. These are of type stumpwm::window
+    "A list of withdrawn windows. These are of type thesiswm::window
 and when they're mapped again they'll be put back in the group
 they were in when they were unmapped unless that group doesn't
 exist, in which case they go into the current group.")
@@ -611,17 +611,17 @@ char."
   (format stream "#S<screen ~s>" (screen-number object)))
 
 (defvar *screen-list* '()
-  "The list of screens managed by stumpwm.")
+  "The list of screens managed by thesiswm.")
 
 (defvar *initializing* nil
-  "True when starting stumpwm. Use this variable in your rc file to
-run code that should only be executed once, when stumpwm starts up and
+  "True when starting thesiswm. Use this variable in your rc file to
+run code that should only be executed once, when thesiswm starts up and
 loads the rc file.")
 
 (defvar *processing-existing-windows* nil
   "True when processing pre-existing windows at startup.")
 
-(defvar *executing-stumpwm-command* nil
+(defvar *executing-thesiswm-command* nil
   "True when executing external commands.")
 
 (defvar *interactivep* nil
@@ -664,9 +664,9 @@ display a message whenever you switch frames:
 
 @example
 \(defun my-rad-fn (to-frame from-frame)
-  (stumpwm:message \"Mustard!\"))
+  (thesiswm:message \"Mustard!\"))
 
-\(stumpwm:add-hook stumpwm:*focus-frame-hook* 'my-rad-fn)
+\(thesiswm:add-hook thesiswm:*focus-frame-hook* 'my-rad-fn)
 @end example"
   `(setf ,hook (adjoin ,fn ,hook)))
 
@@ -788,7 +788,7 @@ before reopening.")
 
 (defun redirect-all-output (file)
   "Elect to redirect all output to the specified file. For instance,
-if you want everything to go to ~/.stumpwm.d/debug-output.txt you would
+if you want everything to go to ~/.thesiswm.d/debug-output.txt you would
 do:
 
 @example
@@ -923,7 +923,7 @@ The group's name.
 ;;      (font-ascent font)))
 
 (defvar *x-selection* nil
-  "This is a plist of stumpwm's current selections. The different properties are
+  "This is a plist of thesiswm's current selections. The different properties are
 generally set when killing text in the input bar.")
 
 (defvar *last-command* nil
@@ -952,7 +952,7 @@ running instance. Set it to @code{NIL} to search only the current screen. If
 @var{*run-or-raise-all-groups*} is @code{NIL} this variable has no effect.")
 
 (defvar *deny-map-request* nil
-  "A list of window properties that stumpwm should deny matching windows'
+  "A list of window properties that thesiswm should deny matching windows'
 requests to become mapped for the first time.")
 
 (defvar *deny-raise-request* nil
@@ -1042,10 +1042,10 @@ Press ^5*~a ?^2* for help."
   "This is the message StumpWM displays when it starts. Set it to NIL to
 suppress.")
 
-(defvar *default-package* (find-package '#:stumpwm-user)
+(defvar *default-package* (find-package '#:thesiswm-user)
   "This is the package eval reads and executes in. You might want to set
-this to @code{:stumpwm} if you find yourself using a lot of internal
-stumpwm symbols. Setting this variable anywhere but in your rc file
+this to @code{:thesiswm} if you find yourself using a lot of internal
+thesiswm symbols. Setting this variable anywhere but in your rc file
 will have no effect.")
 
 (defun concat (&rest strings)
@@ -1073,7 +1073,7 @@ When non-nil, raise and focus the window in its frame
 When this is nil, this rule will only match when the current group
 matches @var{target-group}. When non-nil, this rule matches regardless
 of the group and the window is sent to @var{target-group}. If
-@var{lock} and @var{raise} are both non-nil, then stumpwm will jump to
+@var{lock} and @var{raise} are both non-nil, then thesiswm will jump to
 the specified group and focus the matched window.
 
 @item create
@@ -1116,7 +1116,7 @@ The window's title must match @var{title}.
 (defvar *mouse-focus-policy* :ignore
   "The mouse focus policy decides how the mouse affects input
 focus. Possible values are :ignore, :sloppy, and :click. :ignore means
-stumpwm ignores the mouse. :sloppy means input focus follows the
+thesiswm ignores the mouse. :sloppy means input focus follows the
 mouse; the window that the mouse is in gets the focus. :click means
 input focus is transfered to the window you click on.")
 
@@ -1178,10 +1178,10 @@ After changing this variable you may need to call
 sync-all-frame-windows to see the change.")
 
 (defvar *data-dir* nil
-  "The directory used by stumpwm to store data between sessions.")
+  "The directory used by thesiswm to store data between sessions.")
 
 (defun data-dir-file (name &optional type)
-  "Return a pathname inside stumpwm's data dir with the specified name and type"
+  "Return a pathname inside thesiswm's data dir with the specified name and type"
   (ensure-directories-exist *data-dir*)
   (make-pathname :name name :type type :defaults *data-dir*))
 
@@ -1202,19 +1202,19 @@ of :error."
     (setf ,list (remove ,elt ,list))
     (push ,elt ,list)))
 
-(define-condition stumpwm-condition (condition)
+(define-condition thesiswm-condition (condition)
   ((message :initarg :message :reader warning-message))
-  (:documentation "Any stumpmwm specific condition should inherit from this.")
+  (:documentation "Any thesismwm specific condition should inherit from this.")
   (:report (lambda (condition stream)
             (format stream "~A~%" (warning-message condition)))))
 
-(define-condition stumpwm-error (stumpwm-condition error)
+(define-condition thesiswm-error (thesiswm-condition error)
   ()
-  (:documentation "Any stumpwm specific error should inherit this."))
+  (:documentation "Any thesiswm specific error should inherit this."))
 
-(define-condition stumpwm-warning (warning stumpwm-condition)
+(define-condition thesiswm-warning (warning thesiswm-condition)
   ()
-  (:documentation "Adds a message slot to warning. Any stumpwm specific warning
+  (:documentation "Adds a message slot to warning. Any thesiswm specific warning
   should inherit from this."))
 
 (defun intern1 (thing &optional (package *package*) (rt *readtable*))

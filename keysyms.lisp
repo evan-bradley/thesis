@@ -1,13 +1,13 @@
 ;; Copyright (C) 2006-2008 Matthew Kennedy
 ;;
-;;  This file is part of stumpwm.
+;;  This file is part of thesiswm.
 ;;
-;; stumpwm is free software; you can redistribute it and/or modify
+;; thesiswm is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation; either version 2, or (at your option)
 ;; any later version.
 
-;; stumpwm is distributed in the hope that it will be useful,
+;; thesiswm is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
@@ -24,7 +24,7 @@
 ;;
 ;; Code:
 
-(in-package #:stumpwm)
+(in-package #:thesiswm)
 
 (defvar *keysym-name-translations* (make-hash-table))
 (defvar *name-keysym-translations* (make-hash-table :test #'equal))

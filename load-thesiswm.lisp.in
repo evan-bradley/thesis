@@ -10,4 +10,4 @@
    (:directory "@STUMPWM_ASDF_DIR@")
    :inherit-configuration))
 
-(asdf:oos 'asdf:load-op 'stumpwm)
+(asdf:oos 'asdf:load-op 'thesiswm)

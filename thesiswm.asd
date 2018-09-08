@@ -1,10 +1,10 @@
 ;;; -*- Mode: Lisp -*-
 
-(defpackage :stumpwm-system
+(defpackage :thesiswm-system
   (:use :cl :asdf))
-(in-package :stumpwm-system)
+(in-package :thesiswm-system)
 
-(defsystem :stumpwm
+(defsystem :thesiswm
   :name "StumpWM"
   :author "Shawn Betts <sabetts@vcn.bc.ca>"
   :version "1.0.0"
@@ -47,7 +47,7 @@
                (:file "selection")
                (:file "module")
                (:file "ioloop")
-               (:file "stumpwm")
+               (:file "thesiswm")
                (:file "user")
                (:file "interactive-keymap")
                (:file "iresize")

@@ -1,13 +1,13 @@
 ;; Copyright (C) 2003-2008 Shawn Betts
 ;;
-;;  This file is part of stumpwm.
+;;  This file is part of thesiswm.
 ;;
-;; stumpwm is free software; you can redistribute it and/or modify
+;; thesiswm is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation; either version 2, or (at your option)
 ;; any later version.
 
-;; stumpwm is distributed in the hope that it will be useful,
+;; thesiswm is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
@@ -22,7 +22,7 @@
 ;;
 ;; Code:
 
-(in-package #:stumpwm)
+(in-package #:thesiswm)
 
 (export '(*groups-map*
           *group-top-maps*
@@ -244,9 +244,9 @@ current window. To exit command mode, type @key{C-g}."
   (push-top-map *root-map*))
 
 (defcommand set-prefix-key (key) ((:key "Key: "))
-  "Change the stumpwm prefix key to KEY.
+  "Change the thesiswm prefix key to KEY.
 @example
-\(stumpwm:set-prefix-key (stumpwm:kbd \"C-M-H-s-z\"))
+\(thesiswm:set-prefix-key (thesiswm:kbd \"C-M-H-s-z\"))
 @end example
 
 This will change the prefix key to @key{Control} + @key{Meta} + @key{Hyper} + @key{Super} +

@@ -1,13 +1,13 @@
 ;; Copyright (C) 2003-2008 Shawn Betts
 ;;
-;;  This file is part of stumpwm.
+;;  This file is part of thesiswm.
 ;;
-;; stumpwm is free software; you can redistribute it and/or modify
+;; thesiswm is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation; either version 2, or (at your option)
 ;; any later version.
 
-;; stumpwm is distributed in the hope that it will be useful,
+;; thesiswm is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
@@ -21,7 +21,7 @@
 ;; This file handles input stuff
 ;;
 ;; Code:
-(in-package :stumpwm)
+(in-package :thesiswm)
 
 (export '(*input-history-ignore-duplicates*
           *input-map*
@@ -192,7 +192,7 @@
               :adjustable t :fill-pointer t))
 
 (defun completing-read (screen prompt completions &key (initial-input "") require-match)
-  "Read a line of input through stumpwm and return it with TAB
+  "Read a line of input through thesiswm and return it with TAB
 completion. completions can be a list, an fbound symbol, or a
 function. if its an fbound symbol or a function then that function is
 passed the substring to complete on and is expected to return a list
@@ -206,7 +206,7 @@ match with an element of the completions."
       (when line (string-trim " " line)))))
 
 (defun read-one-line (screen prompt &key (initial-input "") require-match password)
-  "Read a line of input through stumpwm and return it. returns nil if the user aborted."
+  "Read a line of input through thesiswm and return it. returns nil if the user aborted."
   (let ((*input-last-command* nil)
         (input (make-input-line :string (make-input-string initial-input)
                                 :position (length initial-input)
@@ -583,7 +583,7 @@ functions are passed this structure as their first argument."
       (input-insert-string input (getf *x-selection* :primary))
       (xlib:convert-selection :primary
                               :string (screen-input-window (current-screen))
-                              :stumpwm-selection)))
+                              :thesiswm-selection)))
 
 (defun input-yank-clipboard (input key)
   (declare (ignore key))
@@ -591,7 +591,7 @@ functions are passed this structure as their first argument."
       (input-insert-string input (getf *x-selection* :clipboard))
       (xlib:convert-selection :clipboard
                               :string (screen-input-window (current-screen))
-                              :stumpwm-selection)))
+                              :thesiswm-selection)))
 
 
 ;;; Misc functions
@@ -678,7 +678,7 @@ input (pressing Return), nil otherwise."
   (setf *modifiers* (get-modifier-map)
         *all-modifiers* (all-modifier-codes)))
 
-;; (defun x11mod->stumpmod (screen state)
+;; (defun x11mod->thesismod (screen state)
 ;;   (let ((mod nil))
 ;;     (when (member state (modifiers-alt (screen-modifiers screen)))
 ;;       (push :alt mod))
@@ -693,7 +693,7 @@ input (pressing Return), nil otherwise."
 ;;     mod))
 
 (defun mod->string (state)
-  "Convert a stump modifier list to a string"
+  "Convert a thesis modifier list to a string"
   (let ((alist '((:alt . "A-") (:meta . "M-") (:hyper . "H-") (:super . "S-"))))
     (apply #'concatenate 'string (mapcar (lambda (x) (cdr (assoc x alist))) state))))
 
@@ -704,7 +704,7 @@ input (pressing Return), nil otherwise."
 ;;                                        state))))
 
 ;; (defun cook-keycode (code state)
-;;   (values (xlib:keycode->keysym *display* code 0) (x11mod->stumpmod state)))
+;;   (values (xlib:keycode->keysym *display* code 0) (x11mod->thesismod state)))
 
 (defun y-or-n-p (message)
   "ask a \"y or n\" question on the current screen and return T if the

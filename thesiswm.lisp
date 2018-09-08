@@ -1,13 +1,13 @@
 ;; Copyright (C) 2003-2008 Shawn Betts
 ;;
-;;  This file is part of stumpwm.
+;;  This file is part of thesiswm.
 ;;
-;; stumpwm is free software; you can redistribute it and/or modify
+;; thesiswm is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation; either version 2, or (at your option)
 ;; any later version.
 
-;; stumpwm is distributed in the hope that it will be useful,
+;; thesiswm is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
@@ -20,19 +20,19 @@
 ;;
 ;; Code:
 
-(in-package :stumpwm)
+(in-package :thesiswm)
 
 (export '(cancel-timer
 	  run-with-timer
           *toplevel-io*
-	  stumpwm
+	  thesiswm
 	  timer-p))
 
 
 ;;; Main
 
 (defun load-rc-file (&optional (catch-errors t))
-  "Load the user's .stumpwmrc file or the system wide one if that
+  "Load the user's .thesiswmrc file or the system wide one if that
 doesn't exist. Returns a values list: whether the file loaded (t if no
 rc files exist), the error if it didn't, and the rc file that was
 loaded. When CATCH-ERRORS is nil, errors are left to be handled
@@ -43,12 +43,12 @@ further up. "
                  (merge-pathnames  #p".config/" (user-homedir-pathname))
                  dir)))
          (user-rc
-           (probe-file (merge-pathnames #p".stumpwmrc" (user-homedir-pathname))))
+           (probe-file (merge-pathnames #p".thesiswmrc" (user-homedir-pathname))))
          (dir-rc
-           (probe-file (merge-pathnames #p".stumpwm.d/init.lisp" (user-homedir-pathname))))
+           (probe-file (merge-pathnames #p".thesiswm.d/init.lisp" (user-homedir-pathname))))
          (conf-rc
-           (probe-file (merge-pathnames #p"stumpwm/config" xdg-config-dir)))
-         (etc-rc (probe-file #p"/etc/stumpwmrc"))
+           (probe-file (merge-pathnames #p"thesiswm/config" xdg-config-dir)))
+         (etc-rc (probe-file #p"/etc/thesiswmrc"))
          (rc (or user-rc dir-rc conf-rc etc-rc)))
     (if rc
         (if catch-errors
@@ -88,7 +88,7 @@ further up. "
   "Lock that should be held whenever *TIMER-LIST* is modified.")
 
 (defvar *in-main-thread* nil
-  "Dynamically bound to T during the execution of the main stumpwm function.")
+  "Dynamically bound to T during the execution of the main thesiswm function.")
 
 (defstruct timer
   time repeat function args)
@@ -175,7 +175,7 @@ The action is to call FUNCTION with arguments ARGS."
 (defmethod handle-top-level-condition ((c serious-condition))
   (when (and (find-restart :remove-channel)
              (not (typep *current-io-channel*
-                         '(or stumpwm-timer-channel display-channel request-channel))))
+                         '(or thesiswm-timer-channel display-channel request-channel))))
     (message "Removed channel ~S due to uncaught error '~A'." *current-io-channel* c)
     (invoke-restart :remove-channel))
   (ecase *top-level-error-action*
@@ -188,19 +188,19 @@ The action is to call FUNCTION with arguments ARGS."
     (:abort
      (throw :top-level (list c (backtrace-string))))))
 
-(defclass stumpwm-timer-channel () ())
+(defclass thesiswm-timer-channel () ())
 
-(defmethod io-channel-ioport (io-loop (channel stumpwm-timer-channel))
+(defmethod io-channel-ioport (io-loop (channel thesiswm-timer-channel))
   (declare (ignore io-loop))
   nil)
-(defmethod io-channel-events ((channel stumpwm-timer-channel))
+(defmethod io-channel-events ((channel thesiswm-timer-channel))
   (sb-thread:with-mutex (*timer-list-lock*)
     (if *timer-list*
         `((:timeout ,(timer-time (car *timer-list*))))
         '(:loop))))
-(defmethod io-channel-handle ((channel stumpwm-timer-channel) (event (eql :timeout)) &key)
+(defmethod io-channel-handle ((channel thesiswm-timer-channel) (event (eql :timeout)) &key)
   (run-expired-timers))
-(defmethod io-channel-handle ((channel stumpwm-timer-channel) (event (eql :loop)) &key)
+(defmethod io-channel-handle ((channel thesiswm-timer-channel) (event (eql :loop)) &key)
   (run-expired-timers))
 
 (defclass request-channel ()
@@ -274,11 +274,11 @@ The action is to call FUNCTION with arguments ARGS."
   (defmethod io-channel-handle ((channel display-channel) (event (eql :loop)) &key)
     (dispatch-all (slot-value channel 'display))))
 
-(defun stumpwm-internal-loop ()
+(defun thesiswm-internal-loop ()
   (loop
      (with-simple-restart (:new-io-loop "Recreate I/O loop")
        (let ((io (make-instance *default-io-loop*)))
-         (io-loop-add io (make-instance 'stumpwm-timer-channel))
+         (io-loop-add io (make-instance 'thesiswm-timer-channel))
          (io-loop-add io (make-instance 'display-channel :display *display*))
 
          ;; If we have no implementation for the current CL, then
@@ -312,12 +312,12 @@ The action is to call FUNCTION with arguments ARGS."
 	    :local)
 	   (t :internet)))))
 
-(defun stumpwm-internal (display-str)
+(defun thesiswm-internal (display-str)
   (multiple-value-bind (host display screen protocol) (parse-display-string display-str)
     (declare (ignore screen))
     (setf *display* (xlib:open-display host :display display :protocol protocol)
           (xlib:display-error-handler *display*) 'error-handler)
-    (with-simple-restart (quit-stumpwm "Quit Stumpwm")
+    (with-simple-restart (quit-thesiswm "Quit Stumpwm")
       ;; In the event of an error, we always need to close the display
       (unwind-protect
            (progn
@@ -357,22 +357,22 @@ The action is to call FUNCTION with arguments ARGS."
              ;; Let's manage.
              (let ((*package* (find-package *default-package*)))
                (run-hook *start-hook*)
-               (stumpwm-internal-loop)))
+               (thesiswm-internal-loop)))
         (xlib:close-display *display*))))
   ;; what should the top level loop do?
   :quit)
 
-;; Usage: (stumpwm)
-(defun stumpwm (&optional (display-str (or (getenv "DISPLAY") ":0")))
-  "Start the stump window manager."
+;; Usage: (thesiswm)
+(defun thesiswm (&optional (display-str (or (getenv "DISPLAY") ":0")))
+  "Start the thesis window manager."
   (let ((*in-main-thread* t))
     (setf *data-dir*
           (make-pathname :directory (append (pathname-directory (user-homedir-pathname))
-                                            (list ".stumpwm.d"))))
+                                            (list ".thesiswm.d"))))
     (init-load-path *module-dir*)
     (loop
       (let ((ret (catch :top-level
-                   (stumpwm-internal display-str))))
+                   (thesiswm-internal display-str))))
         (setf *last-unhandled-error* nil)
         (cond ((and (consp ret)
                     (typep (first ret) 'condition))
@@ -389,4 +389,4 @@ The action is to call FUNCTION with arguments ARGS."
               (t
                (run-hook *quit-hook*)
                ;; the number is the unix return code
-               (return-from stumpwm 0)))))))
+               (return-from thesiswm 0)))))))

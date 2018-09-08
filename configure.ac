@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.59)
-AC_INIT(Stump Window Manager, esyscmd(grep :version stumpwm.asd | cut -d\" -f2 | tr -d \\n), dbjergaard@gmail.com)
+AC_INIT(Stump Window Manager, esyscmd(grep :version thesiswm.asd | cut -d\" -f2 | tr -d \\n), dbjergaard@gmail.com)
 
 AC_SUBST(MODULE_DIR)
 AC_SUBST(LISP_PROGRAM)
@@ -19,7 +19,7 @@ AC_ARG_WITH(lw,      [  --with-lw=PATH          specify location of lispworks], 
 
 AC_ARG_WITH(module-dir,
                      [  --with-module-dir=PATH specify location of contrib modules],
-                     MODULE_DIR=$withval, MODULE_DIR="${HOME}/.stumpwm.d/modules")
+                     MODULE_DIR=$withval, MODULE_DIR="${HOME}/.thesiswm.d/modules")
 
 STUMPWM_ASDF_DIR="`pwd`"
 
@@ -117,4 +117,4 @@ fi
 # Checks for library functions.
 AC_OUTPUT(Makefile)
 AC_OUTPUT(make-image.lisp)
-AC_OUTPUT(load-stumpwm.lisp)
+AC_OUTPUT(load-thesiswm.lisp)

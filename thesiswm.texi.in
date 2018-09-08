@@ -1,13 +1,13 @@
 \input texinfo   @c -*-texinfo-*-
 @c %**start of header
-@setfilename stumpwm.info
+@setfilename thesiswm.info
 @settitle StumpWM Manual
 @setchapternewpage odd
 @c %**end of header
 
 @dircategory X11
 @direntry
-* StumpWM: (stumpwm).       A Common Lisp window manager
+* StumpWM: (thesiswm).       A Common Lisp window manager
 @end direntry
 
 @ifinfo
@@ -231,11 +231,11 @@ environment.
 @enumerate
 @item
 Install the prerequisites and build StumpWM as described in
-@file{README}.  This should give you a @file{stumpwm} executable.
+@file{README}.  This should give you a @file{thesiswm} executable.
 
 @item
 In your @file{~/.xinitrc} file include the line
-@command{/path/to/stumpwm}. Remember to replace @samp{/path/to/}
+@command{/path/to/thesiswm}. Remember to replace @samp{/path/to/}
 with the actual path.
 
 @item
@@ -609,17 +609,17 @@ locations on your system, and will use the first one found in this
 order:
 
 @itemize
-@item `~/.stumpwmrc' is the classic UNIX-style configuration name;
+@item `~/.thesiswmrc' is the classic UNIX-style configuration name;
 
-@item `~/.stumpwm.d/init.lisp' is an Emacs-style location and name;
+@item `~/.thesiswm.d/init.lisp' is an Emacs-style location and name;
 
-@item `~/.config/stumpwm/config' is the XDG standard;
+@item `~/.config/thesiswm/config' is the XDG standard;
 
-@item `/etc/stumpwmrc' is a system-wide file giving all users a
+@item `/etc/thesiswmrc' is a system-wide file giving all users a
 standardized environment.
 @end itemize
 
-StumpWM includes a basic `sample-stumpwm.lisp' in its source
+StumpWM includes a basic `sample-thesiswm.lisp' in its source
 directory. You can use this as a template when you're starting out:
 copy it to the above name and location you prefer and edit it to
 suit your preferences.
@@ -630,17 +630,17 @@ the names and locations listed above.
 
 @node Contact the StumpWM developers,  , Init File, Introduction
 @section Contact the StumpWM developers
-The StumpWM home page is @url{http://stumpwm.nongnu.org/}.
+The StumpWM home page is @url{http://thesiswm.nongnu.org/}.
 
-The StumpWM mailing list is @email{stumpwm-devel@@nongnu.org} which
+The StumpWM mailing list is @email{thesiswm-devel@@nongnu.org} which
 you can subscribe to at
-@url{https://lists.nongnu.org/mailman/listinfo/stumpwm-devel}. It is
+@url{https://lists.nongnu.org/mailman/listinfo/thesiswm-devel}. It is
 the preferred way of contacting developers for questions.  If you have
 a bug report or patch, please open an issue or pull request at
-@url{https://github.com/stumpwm/stumpwm/issues}.
+@url{https://github.com/thesiswm/thesiswm/issues}.
 
 The StumpWM IRC channel can be found on Freenode at
-@uref{irc://irc.freenode.net/#stumpwm, @code{#stumpwm}}.
+@uref{irc://irc.freenode.net/#thesiswm, @code{#thesiswm}}.
 
 @node Key Bindings, Commands, Introduction, Top
 @chapter Key Bindings
@@ -951,7 +951,7 @@ $ cat ~/.xsession
 #!/bin/sh
 
 xmodmap ~/.Xmodmap
-exec /usr/bin/stumpwm
+exec /usr/bin/thesiswm
 @end example
 
 If you use a settings daemon from one of the major desktop
@@ -1174,7 +1174,7 @@ A lisp variable
 @item :function
 A lisp function
 @item :command
-A stumpwm command as a string.
+A thesiswm command as a string.
 @item :key-seq
 A key sequence starting from *TOP-MAP*
 @item :window-number
@@ -1200,17 +1200,17 @@ A shell command
 @item :rest
 The rest of the input yet to be parsed.
 @item :module
-An existing stumpwm module
+An existing thesiswm module
 @end table
 
 Additional types can be defined using the macro
-@command{define-stumpwm-type}. Emacs users who are accustomed to writing
+@command{define-thesiswm-type}. Emacs users who are accustomed to writing
 more complicated interactive declarations using "(interactive (list
 @dots{}))" forms will find that similar logic can be put into StumpWM
 type definitions. The macro is called like this:
 
 @example
-(define-stumpwm-type :type-name (input prompt) body)
+(define-thesiswm-type :type-name (input prompt) body)
 @end example
 
 The keyword :type-name will then be available for use in
@@ -1264,7 +1264,7 @@ It signals an error for invalid directions; it could alternately
 return a ``nil'' value in those cases, and let the command handle that.
 
 @example
-(define-stumpwm-type :smart-direction (input prompt)
+(define-thesiswm-type :smart-direction (input prompt)
   (let ((valid-dirs
          (loop  ; gather all the directions in which there's a neighbouring frame
             with values = '(("up" :up)
@@ -1525,16 +1525,16 @@ Some examples follow.
 
 @example
 ;; Deny the firefox window from taking focus when clicked upon.
-(push '(:class "gecko") stumpwm:*deny-raise-request*)
+(push '(:class "gecko") thesiswm:*deny-raise-request*)
 
 ;; Deny all map requests
-(setf stumpwm:*deny-map-request* t)
+(setf thesiswm:*deny-map-request* t)
 
 ;; Deny transient raise requests
-(push '(:transient) stumpwm:*deny-map-request*)
+(push '(:transient) thesiswm:*deny-map-request*)
 
 ;; Deny the all windows in the xterm class from taking focus.
-(push '(:class "Xterm") stumpwm:*deny-raise-request*)
+(push '(:class "Xterm") thesiswm:*deny-raise-request*)
 @end example
 
 @node Programming With Windows, Rule Based Window Placement, Controlling Raise And Map Requests, Windows
@@ -1700,13 +1700,13 @@ positioning at the top or bottom of the head rather than relying on
 @var{*mode-line-position*}
 
 The mode line can be turned on and off with the @command{mode-line}
-command or the lisp function @code{stumpwm:toggle-mode-line}. Each
+command or the lisp function @code{thesiswm:toggle-mode-line}. Each
 head has its own mode line. For example:
 
 @example
 ;; turn on/off the mode line for the current head only.
-(stumpwm:toggle-mode-line (stumpwm:current-screen)
-                          (stumpwm:current-head))
+(thesiswm:toggle-mode-line (thesiswm:current-screen)
+                          (thesiswm:current-head))
 @end example
 
 The mode line is updated after every StumpWM command.
@@ -1715,12 +1715,12 @@ To display the window list and the current date on the modeline, one
 might do the following:
 
 @example
-(setf stumpwm:*screen-mode-line-format*
+(setf thesiswm:*screen-mode-line-format*
       (list "%w | "
-            '(:eval (stumpwm:run-shell-command "date" t))))
+            '(:eval (thesiswm:run-shell-command "date" t))))
 @end example
 
-@code{(stumpwm:run-shell-command "date" t)} runs the command
+@code{(thesiswm:run-shell-command "date" t)} runs the command
 @command{date} and returns its output as a string.
 
 !!! mode-line
@@ -1874,7 +1874,7 @@ section.
 
 %%% defcommand
 %%% define-interactive-keymap
-%%% define-stumpwm-type
+%%% define-thesiswm-type
 
 @@@ run-or-raise
 
@@ -1931,7 +1931,7 @@ Select the highlighted option.
 @node StumpWM's Data Directory, Debugging StumpWM, Menus, Miscellaneous Commands
 @section StumpWM's Data Directory
 If you want to store StumpWM data between sessions, the recommended
-method is to store them in @file{~/.stumpwm.d/}. StumpWM supplies
+method is to store them in @file{~/.thesiswm.d/}. StumpWM supplies
 some functions to make doing this easier.
 
 ### *data-dir*
@@ -1954,24 +1954,24 @@ the developers can fix it:
 @item
 Include a procedure for reproducing the bug/bad behavior. Ideally this
 will include numbered steps starting with instructions on how you
-start stumpwm. Also include what the expected behavior was.
+start thesiswm. Also include what the expected behavior was.
 @item
 Be as detailed as possible. Then add more detail!
 @item
 Make sure its not something you introduced by using an empty @file{.xinitrc}
-containing only @samp{exec /path/to/stumpwm}.
+containing only @samp{exec /path/to/thesiswm}.
 @item
-Make sure the bug is present even when @file{.stumpwmrc} is empty.
+Make sure the bug is present even when @file{.thesiswmrc} is empty.
 @item
 If you are using the git version, include the hash of the master
 branch, or better include the commit when you started to notice the
 bug.
 @item
 If you have code that fixes the bug, then open a pull request at
-@url{https://github.com/stumpwm/stumpwm/compare/}.
+@url{https://github.com/thesiswm/thesiswm/compare/}.
 @item
 If you don't have code to fix the bug, then open an issue at
-@url{https://github.com/stumpwm/stumpwm/issues/new}.
+@url{https://github.com/thesiswm/thesiswm/issues/new}.
 @end itemize
 
 @node Timers, Getting Help, Sending a Bug Report, Miscellaneous Commands
@@ -2002,7 +2002,7 @@ When specifying a color, it is possible to use its X11 Color Name
 six digit hex string prefixed by a '#' character in the same way that
 you can specify colors in HTML.
 
-All text printed by stumpwm is run through a coloring engine before
+All text printed by thesiswm is run through a coloring engine before
 being displayed. All color commands start with a @samp{^} (caret)
 character and apply to all text after it.
 
@@ -2125,7 +2125,7 @@ like hooks in Emacs, you add to a hook with the @code{add-hook}
 function. for example:
 
 @example
-(stumpwm:add-hook 'stumpwm:*new-window-hook* 'my-new-window-custos)
+(thesiswm:add-hook 'thesiswm:*new-window-hook* 'my-new-window-custos)
 @end example
 
 adds your @code{my-new-window-custos} function to the list of
@@ -2160,14 +2160,14 @@ $$$ *post-command-hook*
 A module is an ASDF system that adds additional functionality to
 StumpWM.  StumpWM searches for modules in the
 @var{*data-dir*}@file{/modules} directory.  By default this is
-@file{~/.stumpwm.d/modules}.
+@file{~/.thesiswm.d/modules}.
 
 Officially supported modules exist in a separate repository within the
 StumpWM organization on github.  You can install the latest copy by
 issuing @command{make install-modules} from StumpWM's root source
 directory.  This will run:
 @example
-git clone git@@github.com:stumpwm/stumpwm-contrib.git ~/.stumpwm.d/modules
+git clone git@@github.com:thesiswm/thesiswm-contrib.git ~/.thesiswm.d/modules
 @end example
 
 
@@ -2191,12 +2191,12 @@ up a new module very easy.  After installing quicklisp (see the
 README.md for a link):
 
 We're going to put our new module in the @file{modules/} directory of
-@var{*data-dir*} so that it will be immediately loadable by stumpwm.
+@var{*data-dir*} so that it will be immediately loadable by thesiswm.
 
 First make the directory @file{new-module}, then from a REPL issue:
 @example
 (ql:quickload "quickproject")
-(quickproject:make-project #p"~/.stumpwm.d/modules/new-module" :depends-on '(stumpwm) :name "new-module")
+(quickproject:make-project #p"~/.thesiswm.d/modules/new-module" :depends-on '(thesiswm) :name "new-module")
 @end example
 This will create:
 @example
@@ -2217,14 +2217,14 @@ contain:
   :description "Describe new-module here"
   :author "Anne N. O'Nymous"
   :license "GPLv3"
-  :depends-on (#:stumpwm)
+  :depends-on (#:thesiswm)
   :components ((:file "package")
                (:file "new-module"))) ; any other files you make go here
 @end example
 The @file{package.lisp} will contain:
 @example
 (defpackage #:new-module
-  (:use #:cl :stumpwm))
+  (:use #:cl :thesiswm))
 @end example
 With these two files defined, and the implementation written in
 @file{new-module.lisp}, you should be able to load your module.
@@ -2232,7 +2232,7 @@ With these two files defined, and the implementation written in
 Before we load it, we have to add the path to our @var{*load-path*}.
 This can be accomplished by running the following from a REPL:
 @example
-(stumpwm:add-to-load-path "~/.stumpwm.d/modules/new-module")
+(thesiswm:add-to-load-path "~/.thesiswm.d/modules/new-module")
 @end example
 You can also run this interactively with @kbd{C-t ;}, which is bound
 to the @command{colon} command.
@@ -2245,12 +2245,12 @@ develop your module somewhere else (e.g.
 @example
 (add-to-load-path "~/quicklisp/local-projects/new-module")
 @end example
-to your @file{.stumpwmrc}.
+to your @file{.thesiswmrc}.
 
 When you've finished writing your module, you can distribute it
 however you see fit.  If it becomes very popular, or you would like
 the StumpWM devs to maintain it (and they agree), you can have your
-module merged with the stumpwm-contrib repository on github, just open
+module merged with the thesiswm-contrib repository on github, just open
 a pull request to start the discussion.
 
 @node Hacking, Command and Function Index, Modules, Top
@@ -2362,7 +2362,7 @@ releases, you can get the bleeding-edge source code from the official
 git repository with a single command:
 
 @example
-$ git clone git@@github.com:stumpwm/stumpwm.git
+$ git clone git@@github.com:thesiswm/thesiswm.git
 @end example
 
 After this, you'll have a complete git repository, along with the
@@ -2388,7 +2388,7 @@ changes to both @file{user.lisp} and @file{core.lisp}, add a file called
 @file{DANGEROUS_EXPERIMENT_DO_NOT_USE_OR_@-ELSE.lisp}, and remove the manual
 because you're too 1337 for such things. However, you don't want to
 break your entire StumpWM setup and start over. Thankfully, you don't
-have to. Before you get started, issue this command from the stumpwm
+have to. Before you get started, issue this command from the thesiswm
 directory:
 
 @example
@@ -2452,11 +2452,11 @@ is as it should be--your master repository is still safe.
 $ git checkout experimental
 @end example
 
-Now, delete @file{manual.lisp} and @file{stumpwm.texi}. That's right. Wipe them off
+Now, delete @file{manual.lisp} and @file{thesiswm.texi}. That's right. Wipe them off
 the face of the Earth, or at least off the hard drive of your
 computer. When you're done, you don't have to tell git you've deleted
 them; it'll figure it out on its own (though things may not compile
-properly unless you edit @file{Makefile.in} and @file{stumpwm.asd}. Anyway, go ahead
+properly unless you edit @file{Makefile.in} and @file{thesiswm.asd}. Anyway, go ahead
 and edit @file{core.lisp} and @file{user.lisp}. Really break 'em. Run free! When
 you're done, do another commit, as above, and give it a stupid title
 like ``lolz i b0rked stUmpwm guys wTF!?!?!!111!'' Now try to compile.
@@ -2493,7 +2493,7 @@ A developer might ask you to try out something they're working on. To
 fetch their master branch, you'd do this:
 
 @example
-$ git remote add -f -m master -t master foo git://bar.org/~foo/stumpwm
+$ git remote add -f -m master -t master foo git://bar.org/~foo/thesiswm
 @end example
 
 Here, ``foo'' is the shorthand name you'll use to refer to that

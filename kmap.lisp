@@ -1,13 +1,13 @@
 ;; Copyright (C) 2003-2008 Shawn Betts
 ;;
-;;  This file is part of stumpwm.
+;;  This file is part of thesiswm.
 ;;
-;; stumpwm is free software; you can redistribute it and/or modify
+;; thesiswm is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation; either version 2, or (at your option)
 ;; any later version.
 
-;; stumpwm is distributed in the hope that it will be useful,
+;; thesiswm is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
@@ -22,7 +22,7 @@
 ;;
 ;; Code:
 
-(in-package stumpwm)
+(in-package thesiswm)
 
 (export '(*top-map*
           *root-map*
@@ -56,13 +56,13 @@ related bindings off @kbd{C-t C-f} one might use the following code:
 
 @example
 \(defvar *my-frame-bindings*
-  (let ((m (stumpwm:make-sparse-keymap)))
-    (stumpwm:define-key m (stumpwm:kbd \"f\") \"curframe\")
-    (stumpwm:define-key m (stumpwm:kbd \"M-b\") \"move-focus left\")
+  (let ((m (thesiswm:make-sparse-keymap)))
+    (thesiswm:define-key m (thesiswm:kbd \"f\") \"curframe\")
+    (thesiswm:define-key m (thesiswm:kbd \"M-b\") \"move-focus left\")
     m ; NOTE: this is important
   ))
 
-\(stumpwm:define-key stumpwm:*root-map* (stumpwm:kbd \"C-f\") '*my-frame-bindings*)
+\(thesiswm:define-key thesiswm:*root-map* (thesiswm:kbd \"C-f\") '*my-frame-bindings*)
 @end example"
   (make-kmap))
 
@@ -106,7 +106,7 @@ the time these just gets in the way."
 (defun report-kbd-parse-error (c stream)
   (format stream "Failed to parse key string: ~s" (slot-value c 'string)))
 
-(define-condition kbd-parse-error (stumpwm-error)
+(define-condition kbd-parse-error (thesiswm-error)
   ((string :initarg :string))
   (:report report-kbd-parse-error)
   (:documentation "Raised when a kbd string failed to parse."))
@@ -134,7 +134,7 @@ kbd-parse if the key failed to parse."
   (let* ((p (when (> (length string) 2)
               (position #\- string :from-end t :end (- (length string) 1))))
          (mods (parse-mods string (if p (1+ p) 0)))
-         (keysym (stumpwm-name->keysym (subseq string (if p (1+ p) 0)))))
+         (keysym (thesiswm-name->keysym (subseq string (if p (1+ p) 0)))))
     (if keysym
         (apply 'make-key :keysym keysym mods)
         (signal 'kbd-parse-error :string string))))
@@ -172,7 +172,7 @@ others."
 (defun print-key (key)
   (format nil "~a~a"
           (print-mods key)
-          (keysym->stumpwm-name (key-keysym key))))
+          (keysym->thesiswm-name (key-keysym key))))
 
 (defun print-key-seq (seq)
   (format nil "^5*~{~a~^ ~}^n" (mapcar 'print-key seq)))
@@ -183,7 +183,7 @@ others."
 exising binding.  For example,
 
 @example
-\(stumpwm:define-key stumpwm:*root-map* (stumpwm:kbd \"C-z\") \"echo Zzzzz...\")
+\(thesiswm:define-key thesiswm:*root-map* (thesiswm:kbd \"C-z\") \"echo Zzzzz...\")
 @end example
 
 Now when you type C-t C-z, you'll see the text ``Zzzzz...'' pop up."

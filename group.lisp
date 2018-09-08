@@ -1,13 +1,13 @@
 ;; Copyright (C) 2003-2008 Shawn Betts
 ;;
-;;  This file is part of stumpwm.
+;;  This file is part of thesiswm.
 ;;
-;; stumpwm is free software; you can redistribute it and/or modify
+;; thesiswm is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation; either version 2, or (at your option)
 ;; any later version.
 
-;; stumpwm is distributed in the hope that it will be useful,
+;; thesiswm is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
@@ -22,7 +22,7 @@
 ;;
 ;; Code:
 
-(in-package #:stumpwm)
+(in-package #:thesiswm)
 
 (export '(current-group group-windows move-window-to-group add-group
           ;; Group accessors
@@ -52,7 +52,7 @@
 
 ;;; The group API
 (defgeneric group-startup (group)
-  (:documentation "Called on all groups while stumpwm is starting up."))
+  (:documentation "Called on all groups while thesiswm is starting up."))
 (defgeneric group-add-window (group window &key &allow-other-keys)
   (:documentation "Called when a window is added to the group. All
 house keeping is already taken care of. Only the group's specific

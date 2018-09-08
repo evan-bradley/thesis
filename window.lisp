@@ -1,13 +1,13 @@
 ;; Copyright (C) 2003-2008 Shawn Betts
 ;;
-;;  This file is part of stumpwm.
+;;  This file is part of thesiswm.
 ;;
-;; stumpwm is free software; you can redistribute it and/or modify
+;; thesiswm is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation; either version 2, or (at your option)
 ;; any later version.
 
-;; stumpwm is distributed in the hope that it will be useful,
+;; thesiswm is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
@@ -22,7 +22,7 @@
 ;;
 ;; Code:
 
-(in-package #:stumpwm)
+(in-package #:thesiswm)
 
 (export '(*default-window-name*
           define-window-slot
@@ -670,7 +670,7 @@ and bottom_end_x."
     (setf (window-parent window) master-window)))
 
 (defun process-existing-windows (screen)
-  "Windows present when stumpwm starts up must be absorbed by stumpwm."
+  "Windows present when thesiswm starts up must be absorbed by thesiswm."
   (let ((children (xlib:query-tree (screen-root screen)))
         (*processing-existing-windows* t)
         (stacking (xlib:get-property (screen-root screen) :_NET_CLIENT_LIST_STACKING :type :window)))
@@ -1130,9 +1130,9 @@ formatting. This is a simple wrapper around the command @command{windowlist}."
                (let ((sym (cond ((<= 32 (char-code ch) 127)
                                  (char-code ch))
                                 ((char= ch #\Tab)
-                                 (stumpwm-name->keysym "TAB"))
+                                 (thesiswm-name->keysym "TAB"))
                                 ((char= ch #\Newline)
-                                 (stumpwm-name->keysym "RET"))
+                                 (thesiswm-name->keysym "RET"))
                                 (t (first (xlib:character->keysyms ch *display*))))))
                  (when sym
                    (send-fake-key window

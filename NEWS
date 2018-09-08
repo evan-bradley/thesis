@@ -83,8 +83,8 @@ StumpWM now has a floating window group mode.
 ** new %interactivep% variable
 see defcommand in the manual.
 
-** The default package is now stumpwm-user
-stumpwm-user imports all exported stumpwm symbols.
+** The default package is now thesiswm-user
+thesiswm-user imports all exported thesiswm symbols.
 
 ** the pixmap error plaguing some users has been fixed
 If you are running sbcl, you need do nothing. If you're using clisp,
@@ -114,7 +114,7 @@ called *new-window-preferred-frame*.
 
 ** new command type :direction
 
-** define-stumpwm-command is deprecated
+** define-thesiswm-command is deprecated
 Use defcommand instead
 
 ** pull-window-by-number arguments are reversed
@@ -162,7 +162,7 @@ These changes are probably incomplete
 
 ** added rule based window placement
 
-** stumpwm now handles window roles
+** thesiswm now handles window roles
 
 ** move-focus now uses a heuristic to find the 'best' frame to focus
 
@@ -170,7 +170,7 @@ These changes are probably incomplete
 Now takes an optional format string as an argument!
 
 ** more netwm compliance
-stumpwm now exports its groups as netwm desktops.
+thesiswm now exports its groups as netwm desktops.
 
 ** new var *default-package*
 This decides what package the eval command reads and executes things
@@ -201,7 +201,7 @@ characters. This numeric prefix works for all % arguments.
 ** _NET_CLIENT_LIST works
 which means wmctl -l returns useful info.
 
-** stumpwm executables
+** thesiswm executables
 the Makefile can now generate executables for sbcl and clisp. Edit the
 Makefile to choose you lisp.
 
@@ -214,7 +214,7 @@ Makefile to choose you lisp.
 ** New command, title, bound to C-t A
 title sets the window's name.
 
-** errors while reloading stumpwm 
+** errors while reloading thesiswm 
 A restarts menu now appears that allows you to select a restart, if
 you want.
 

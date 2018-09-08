@@ -1,13 +1,13 @@
 ;; Copyright (C) 2003-2008 Shawn Betts
 ;;
-;;  This file is part of stumpwm.
+;;  This file is part of thesiswm.
 ;;
-;; stumpwm is free software; you can redistribute it and/or modify
+;; thesiswm is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation; either version 2, or (at your option)
 ;; any later version.
 
-;; stumpwm is distributed in the hope that it will be useful,
+;; thesiswm is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
@@ -18,11 +18,11 @@
 
 ;; Commentary:
 ;;
-;; Window Manager commands that users can use to manipulate stumpwm.
+;; Window Manager commands that users can use to manipulate thesiswm.
 ;;
 ;; Code:
 
-(in-package :stumpwm)
+(in-package :thesiswm)
 
 (export '(defprogram-shortcut
           pathname-is-executable-p
@@ -47,7 +47,7 @@ menu, the error is re-signalled."
                                                    r))
                                            ;; a crusty way to get only
                                            ;; the restarts from
-                                           ;; stumpwm's top-level
+                                           ;; thesiswm's top-level
                                            ;; restart inward.
                                            (reverse (member 'top-level
                                                             (reverse (compute-restarts))
@@ -181,7 +181,7 @@ such a case, kill the shell command to resume StumpWM."
 (defcommand echo (string) ((:rest "Echo: "))
   "Display @var{string} in the message bar."
   ;; The purpose of echo is always to pop up a message window.
-  (let ((*executing-stumpwm-command* nil))
+  (let ((*executing-thesiswm-command* nil))
     (message "~a" string)))
 
 (defun send-meta-key (screen key)
@@ -194,7 +194,7 @@ such a case, kill the shell command to resume StumpWM."
   (send-meta-key (current-screen) key))
 
 (defcommand loadrc () ()
-"Reload the @file{~/.stumpwmrc} file."
+"Reload the @file{~/.thesiswmrc} file."
   (handler-case
       (progn
         (with-restarts-menu (load-rc-file nil)))
@@ -222,7 +222,7 @@ such a case, kill the shell command to resume StumpWM."
 
 (defcommand restart-soft () ()
   "Soft Restart StumpWM. The lisp process isn't restarted. Instead,
-control jumps to the very beginning of the stumpwm program. This
+control jumps to the very beginning of the thesiswm program. This
 differs from RESTART, which restarts the unix process.
 
 Since the process isn't restarted, existing customizations remain
@@ -230,7 +230,7 @@ after the restart."
   (throw :top-level :restart))
 
 (defcommand restart-hard () ()
-  "Restart stumpwm. This is handy if a new stumpwm executable has been
+  "Restart thesiswm. This is handy if a new thesiswm executable has been
 made and you wish to replace the existing process with it.
 
 Any run-time customizations will be lost after the restart."
@@ -317,7 +317,7 @@ current frame instead of switching to the window."
 "Reload StumpWM using @code{asdf}."
   (message "Reloading StumpWM...")
   #+asdf (with-restarts-menu
-             (asdf:operate 'asdf:load-op :stumpwm))
+             (asdf:operate 'asdf:load-op :thesiswm))
   #-asdf (message "^B^1*Sorry, StumpWM can only be reloaded with asdf (for now.)")
   #+asdf (message "Reloading StumpWM...^B^2*Done^n."))
 

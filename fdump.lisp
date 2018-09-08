@@ -1,14 +1,14 @@
 ;; fdump.lisp -- Layout save and restore routines.
 ;; Copyright (C) 2007-2008 Jonathan Liles, Shawn Betts
 ;;
-;;  This file is part of stumpwm.
+;;  This file is part of thesiswm.
 ;;
-;; stumpwm is free software; you can redistribute it and/or modify
+;; thesiswm is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation; either version 2, or (at your option)
 ;; any later version.
 
-;; stumpwm is distributed in the hope that it will be useful,
+;; thesiswm is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
@@ -21,7 +21,7 @@
 
 ;; Code:
 
-(in-package #:stumpwm)
+(in-package #:thesiswm)
 
 (export '(ddump
           ddump-current
@@ -100,7 +100,7 @@
 (defun dump-to-file (foo name)
   (with-open-file (fp name :direction :output :if-exists :supersede)
     (with-standard-io-syntax
-      (let ((*package* (find-package :stumpwm))
+      (let ((*package* (find-package :thesiswm))
             (*print-pretty* t))
         (prin1 foo fp)))))
 
@@ -131,7 +131,7 @@
 (defun read-dump-from-file (file)
   (with-open-file (fp file :direction :input)
     (with-standard-io-syntax
-      (let ((*package* (find-package :stumpwm)))
+      (let ((*package* (find-package :thesiswm)))
         (read fp)))))
 
 (defun restore-group (group gdump &optional auto-populate (window-dump-fn 'window-id))

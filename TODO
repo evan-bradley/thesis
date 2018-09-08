@@ -24,7 +24,7 @@ TODO: Next/previous window functions.
       Eventually use reinforcement learning to predict the next window.
       Also include option for ordering based on focus (like Alt+Tab).
 DONE: Properly exit from bar after executing a command.
-TODO: Take everything from .stumpwmrc and put into proper files.
+TODO: Take everything from .thesiswmrc and put into proper files.
       Could be split into overview and non-overview functions.
 TODO: Fill the bar with spaces to allow for typing anywhere.
       Delete spaces on the end to keep it even, and fill it with spaces when

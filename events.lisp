@@ -1,13 +1,13 @@
 ;; Copyright (C) 2003-2008 Shawn Betts
 ;;
-;;  This file is part of stumpwm.
+;;  This file is part of thesiswm.
 ;;
-;; stumpwm is free software; you can redistribute it and/or modify
+;; thesiswm is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation; either version 2, or (at your option)
 ;; any later version.
 
-;; stumpwm is distributed in the hope that it will be useful,
+;; thesiswm is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
@@ -22,7 +22,7 @@
 ;;
 ;; Code:
 
-(in-package #:stumpwm)
+(in-package #:thesiswm)
 
 ;;; Event handler functions
 
@@ -31,7 +31,7 @@
 
 (defvar *current-event-time* nil)
 
-(defmacro define-stump-event-handler (event keys &body body)
+(defmacro define-thesis-event-handler (event keys &body body)
   (let ((fn-name (gensym))
         (event-slots (gensym)))
     (multiple-value-bind (body declarations docstring)
@@ -75,7 +75,7 @@
     (update-configuration win))
 
   (defun configure-unmanaged-window (xwin x y width height border-width value-mask)
-    "Call this function for windows that stumpwm isn't
+    "Call this function for windows that thesiswm isn't
      managing. Basically just give the window what it wants."
     (xlib:with-state (xwin)
       (when (has-x value-mask)
@@ -89,14 +89,14 @@
       (when (has-bw value-mask)
         (setf (xlib:drawable-border-width xwin) border-width)))))
 
-(define-stump-event-handler :configure-request (stack-mode #|parent|# window #|above-sibling|# x y width height border-width value-mask)
+(define-thesis-event-handler :configure-request (stack-mode #|parent|# window #|above-sibling|# x y width height border-width value-mask)
   (dformat 3 "CONFIGURE REQUEST ~@{~S ~}~%" stack-mode window x y width height border-width value-mask)
   (let ((win (find-window window)))
     (if win
         (configure-managed-window win x y width height stack-mode value-mask)
         (configure-unmanaged-window window x y width height border-width value-mask))))
 
-(define-stump-event-handler :configure-notify (stack-mode #|parent|# window #|above-sibling|# x y width height border-width value-mask)
+(define-thesis-event-handler :configure-notify (stack-mode #|parent|# window #|above-sibling|# x y width height border-width value-mask)
   (dformat 4 "CONFIGURE NOTIFY ~@{~S ~}~%" stack-mode window x y width height border-width value-mask)
   (let ((screen (find-screen window)))
     (when screen
@@ -112,12 +112,12 @@
                       (update-mode-lines screen))
                (dformat 1 "Invalid configuration! ~S~%" new-heads))))))))
 
-(define-stump-event-handler :map-notify (window)
+(define-thesis-event-handler :map-notify (window)
   (let ((input-bar (find-input-bar-by-window window)))
     (when input-bar
       (draw-input-bar-bucket input-bar *default-command-prompt* (input-bar-input-line input-bar)))))
 
-(define-stump-event-handler :map-request (parent send-event-p window)
+(define-thesis-event-handler :map-request (parent send-event-p window)
   (unless send-event-p
     ;; This assumes parent is a root window and it should be.
     (dformat 3 "map request: ~a ~a ~a~%" window parent (find-window window))
@@ -150,7 +150,7 @@
              (draw-input-bar-bucket win-bar ": " (input-bar-input-line win-bar))
              (group-raise-request (window-group window) window :map))))))))
 
-(define-stump-event-handler :unmap-notify (send-event-p event-window window #|configure-p|#)
+(define-thesis-event-handler :unmap-notify (send-event-p event-window window #|configure-p|#)
   ;; There are two kinds of unmap notify events: the straight up
   ;; ones where event-window and window are the same, and
   ;; substructure unmap events when the event-window is the parent
@@ -168,7 +168,7 @@
               (decf (window-unmap-ignores window)))
             (withdraw-window window))))))
 
-(define-stump-event-handler :destroy-notify (send-event-p event-window window)
+(define-thesis-event-handler :destroy-notify (send-event-p event-window window)
   (unless (or send-event-p
               (xlib:window-equal event-window window))
     ;; Ignore structure destroy notifies and only
@@ -242,7 +242,7 @@ The Caller is responsible for setting up the input focus."
       when (typep group (first i))
       collect (second i))))
 
-(define-stump-event-handler :key-press (code state #|window|#)
+(define-thesis-event-handler :key-press (code state #|window|#)
   (labels ((get-cmd (code state)
              (with-focus (screen-key-window (current-screen))
                (handle-keymap (top-maps) code state nil t nil))))
@@ -283,19 +283,19 @@ chunks."
                bytes-after)))
     (loop while (> (one-cmd) 0))))
 
-(defun handle-stumpwm-commands (root)
+(defun handle-thesiswm-commands (root)
   "Handle a StumpWM style command request."
   (let* ((win root)
          (screen (find-screen root))
-         (data (xlib:get-property win :stumpwm_command :delete-p t))
+         (data (xlib:get-property win :thesiswm_command :delete-p t))
          (cmd (bytes-to-string data)))
     (let ((msgs (screen-last-msg screen))
           (hlts (screen-last-msg-highlights screen))
-          (*executing-stumpwm-command* t))
+          (*executing-thesiswm-command* t))
       (setf (screen-last-msg screen) '()
             (screen-last-msg-highlights screen) '())
       (eval-command cmd)
-      (xlib:change-property win :stumpwm_command_result
+      (xlib:change-property win :thesiswm_command_result
                             (sb-ext:string-to-octets (format nil "~{~{~a~%~}~}" (nreverse (screen-last-msg screen))))
                             :string 8)
       (setf (screen-last-msg screen) msgs
@@ -356,7 +356,7 @@ converted to an atom is removed."
           ;; FIXME: what about when properties are REMOVED?
           (update-fullscreen window 1)))))))
 
-(define-stump-event-handler :property-notify (window atom state)
+(define-thesis-event-handler :property-notify (window atom state)
   (dformat 2 "property notify ~s ~s ~s~%" window atom state)
   (case atom
     (:rp_command_request
@@ -366,28 +366,28 @@ converted to an atom is removed."
        (when (and (eq state :new-value)
                   screen)
          (handle-rp-commands window))))
-    (:stumpwm_command
+    (:thesiswm_command
      ;; RP commands are too weird and problematic, KISS.
      (let* ((screen (find-screen window)))
        (when (and (eq state :new-value)
                   screen)
-         (handle-stumpwm-commands window))))
+         (handle-thesiswm-commands window))))
     (t
      (let ((window (find-window window)))
        (when window
          (update-window-properties window atom))))))
 
-(define-stump-event-handler :mapping-notify (request start count)
+(define-thesis-event-handler :mapping-notify (request start count)
   ;; We could be a bit more intelligent about when to update the
   ;; modifier map, but I don't think it really matters.
   (xlib:mapping-notify *display* request start count)
   (update-modifier-map)
   (sync-keys))
 
-(define-stump-event-handler :selection-request (requestor property selection target time)
+(define-thesis-event-handler :selection-request (requestor property selection target time)
   (send-selection requestor property selection target time))
 
-(define-stump-event-handler :selection-clear (selection)
+(define-thesis-event-handler :selection-clear (selection)
   (setf (getf *x-selection* selection) nil))
 
 (defun find-message-window-screen (win)
@@ -407,7 +407,7 @@ converted to an atom is removed."
                   x (+ y height)
                   (+ x width) y))
 
-(define-stump-event-handler :exposure (window x y width height count)
+(define-thesis-event-handler :exposure (window x y width height count)
   (let (screen ml)
     (when (zerop count)
       (cond
@@ -426,7 +426,7 @@ converted to an atom is removed."
       (when (and *debug-expose-events* screen)
         (draw-cross screen window x y width height)))))
 
-(define-stump-event-handler :reparent-notify (window parent)
+(define-thesis-event-handler :reparent-notify (window parent)
   (let ((win (find-window window)))
     (when (and win
                (not (xlib:window-equal parent (window-parent win))))
@@ -485,7 +485,7 @@ converted to an atom is removed."
             (echo-string (window-screen window) (format nil "'~a' denied raise request in group ~a" (window-name window) (group-name (window-group window))))))
       (focus-all window)))
 
-(define-stump-event-handler :client-message (window type #|format|# data)
+(define-thesis-event-handler :client-message (window type #|format|# data)
   (dformat 2 "client message: ~s ~s~%" type data)
   (case type
     (:_NET_CURRENT_DESKTOP              ;switch desktop
@@ -548,10 +548,10 @@ converted to an atom is removed."
   (t
    (dformat 2 "ignored message~%"))))
 
-(define-stump-event-handler :focus-out (window mode kind)
+(define-thesis-event-handler :focus-out (window mode kind)
   (dformat 5 "~@{~s ~}~%" window mode kind))
 
-(define-stump-event-handler :focus-in (window mode kind)
+(define-thesis-event-handler :focus-in (window mode kind)
   (let ((win (find-window window)))
     (when (and win (eq mode :normal) (not (eq kind :pointer)))
       (let ((screen (window-screen win)))
@@ -570,14 +570,14 @@ the window in it's frame."
       (switch-to-group group)
       (group-focus-window (window-group win) win))))
 
-(define-stump-event-handler :enter-notify (window mode)
+(define-thesis-event-handler :enter-notify (window mode)
   (when (and window (eq mode :normal) (eq *mouse-focus-policy* :sloppy))
     (let ((win (find-window window)))
       (when (and win (find win (top-windows)))
         (focus-all win)
         (update-all-mode-lines)))))
 
-(define-stump-event-handler :button-press (window code x y child time)
+(define-thesis-event-handler :button-press (window code x y child time)
   (let ((screen (find-screen window))
         (mode-line (find-mode-line-by-window window))
         (input-bar (find-input-bar-by-window window))
@@ -612,7 +612,7 @@ they should be windows. So use this function to make a window out of DRAWABLE."
       ;; XXX: In both the clisp and sbcl clx libraries, sometimes what
       ;; should be a window will be a pixmap instead. In this case, we
       ;; need to manually translate it to a window to avoid breakage
-      ;; in stumpwm. So far the only slot that seems to be affected is
+      ;; in thesiswm. So far the only slot that seems to be affected is
       ;; the :window slot for configure-request and reparent-notify
       ;; events. It appears as though the hash table of XIDs and clx
       ;; structures gets out of sync with X or perhaps X assigns a
@@ -622,12 +622,12 @@ they should be windows. So use this function to make a window out of DRAWABLE."
         (setf (getf event-slots :window) (make-xlib-window win)))
       (handler-case
           (progn
-            ;; This is not the stumpwm top level, but if the restart
+            ;; This is not the thesiswm top level, but if the restart
             ;; is in the top level then it seems the event being
             ;; processed isn't popped off the stack and is immediately
             ;; reprocessed after restarting to the top level. So fake
             ;; it, and put the restart here.
-            (with-simple-restart (top-level "Return to stumpwm's top level")
+            (with-simple-restart (top-level "Return to thesiswm's top level")
               (apply eventfn event-slots))
             (xlib:display-finish-output *display*))
         ((or xlib:window-error xlib:drawable-error) (c)

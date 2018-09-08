@@ -19,5 +19,5 @@ the compton fork required for the ZUI functionality.
 Next, you'll need to install and run the compton fork, which needs to be run
 at startup.
 
-Finally, there are some modifications in the .stumpwmrc included in this
+Finally, there are some modifications in the .thesiswmrc included in this
 repository that may be helpful in running the WM.

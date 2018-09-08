@@ -6,11 +6,11 @@ ccl_BUILDOPTS=--load ./make-image.lisp
 ecl_BUILDOPTS=-shell ./make-image.lisp
 lw_BUILDOPTS=-build ./make-image.lisp
 
-clisp_INFOOPTS=-K base -on-error exit -x "(load (compile-file \"load-stumpwm.lisp\")) (load (compile-file \"manual.lisp\")) (stumpwm::generate-manual) (ext:exit)"
-sbcl_INFOOPTS=--eval "(progn (load \"load-stumpwm.lisp\") (load \"manual.lisp\"))" --eval "(progn (stumpwm::generate-manual) (sb-ext:quit))"
-ccl_INFOOPTS=--eval "(load \"load-stumpwm.lisp\")" --load manual.lisp --eval "(progn (stumpwm::generate-manual) (quit))"
-ecl_INFOOPTS=-eval "(progn (load \"load-stumpwm.lisp\") (load \"manual.lisp\"))" -eval "(progn (stumpwm::generate-manual) (ext:quit))"
-lw_INFOOPTS=-eval "(progn (load \"load-stumpwm.lisp\") (load \"manual.lisp\"))" -eval "(progn (stumpwm::generate-manual) (lw:quit))"
+clisp_INFOOPTS=-K base -on-error exit -x "(load (compile-file \"load-thesiswm.lisp\")) (load (compile-file \"manual.lisp\")) (thesiswm::generate-manual) (ext:exit)"
+sbcl_INFOOPTS=--eval "(progn (load \"load-thesiswm.lisp\") (load \"manual.lisp\"))" --eval "(progn (thesiswm::generate-manual) (sb-ext:quit))"
+ccl_INFOOPTS=--eval "(load \"load-thesiswm.lisp\")" --load manual.lisp --eval "(progn (thesiswm::generate-manual) (quit))"
+ecl_INFOOPTS=-eval "(progn (load \"load-thesiswm.lisp\") (load \"manual.lisp\"))" -eval "(progn (thesiswm::generate-manual) (ext:quit))"
+lw_INFOOPTS=-eval "(progn (load \"load-thesiswm.lisp\") (load \"manual.lisp\"))" -eval "(progn (thesiswm::generate-manual) (lw:quit))"
 
 datarootdir = @datarootdir@
 prefix=@prefix@
@@ -20,52 +20,52 @@ infodir=@infodir@
 
 # You shouldn't have to edit past this
 
-FILES=stumpwm.asd $(shell grep -o ":file \".*\"" stumpwm.asd | sed 's,:file ",,g' | sed 's,",.lisp,g' )
+FILES=thesiswm.asd $(shell grep -o ":file \".*\"" thesiswm.asd | sed 's,:file ",,g' | sed 's,",.lisp,g' )
 
-all: stumpwm stumpwm.info
+all: thesiswm thesiswm.info
 
-travis: stumpwm
-stumpwm.info: stumpwm.texi
-	makeinfo stumpwm.texi
+travis: thesiswm
+thesiswm.info: thesiswm.texi
+	makeinfo thesiswm.texi
 
 # FIXME: This rule is too hardcoded
-stumpwm.texi: stumpwm.texi.in
+thesiswm.texi: thesiswm.texi.in
 	$(LISP) $(@LISP@_INFOOPTS)
 
-stumpwm: $(FILES)
+thesiswm: $(FILES)
 	$(LISP) $(@LISP@_BUILDOPTS)
 
 release:
 	git tag -a -m "version @PACKAGE_VERSION@" @PACKAGE_VERSION@
-	git archive --format=tar --prefix=stumpwm-@PACKAGE_VERSION@/ HEAD > stumpwm-@PACKAGE_VERSION@.tar
-	tar xf stumpwm-@PACKAGE_VERSION@.tar
-	cd stumpwm-@PACKAGE_VERSION@ && tar zxf @PPCRE_PATH@/../cl-ppcre.tar.gz && mv cl-ppcre-* cl-ppcre
-	git log > stumpwm-@PACKAGE_VERSION@/ChangeLog
-	cp configure stumpwm-@PACKAGE_VERSION@/
-	tar zcf stumpwm-@PACKAGE_VERSION@.tgz stumpwm-@PACKAGE_VERSION@
-	rm -fr stumpwm-@PACKAGE_VERSION@/ stumpwm-@PACKAGE_VERSION@.tar
+	git archive --format=tar --prefix=thesiswm-@PACKAGE_VERSION@/ HEAD > thesiswm-@PACKAGE_VERSION@.tar
+	tar xf thesiswm-@PACKAGE_VERSION@.tar
+	cd thesiswm-@PACKAGE_VERSION@ && tar zxf @PPCRE_PATH@/../cl-ppcre.tar.gz && mv cl-ppcre-* cl-ppcre
+	git log > thesiswm-@PACKAGE_VERSION@/ChangeLog
+	cp configure thesiswm-@PACKAGE_VERSION@/
+	tar zcf thesiswm-@PACKAGE_VERSION@.tgz thesiswm-@PACKAGE_VERSION@
+	rm -fr thesiswm-@PACKAGE_VERSION@/ thesiswm-@PACKAGE_VERSION@.tar
 
 upload-release:
-	gpg -b stumpwm-@PACKAGE_VERSION@.tgz
-	scp stumpwm-@PACKAGE_VERSION@.tgz stumpwm-@PACKAGE_VERSION@.tgz.sig sabetts@dl.sv.nongnu.org:/releases/stumpwm/
-	( echo rm stumpwm-latest.tgz.sig && echo rm stumpwm-latest.tgz && echo ln stumpwm-@PACKAGE_VERSION@.tgz stumpwm-latest.tgz && echo ln stumpwm-@PACKAGE_VERSION@.tgz.sig stumpwm-latest.tgz.sig ) | sftp -b - sabetts@dl.sv.nongnu.org:/releases/stumpwm/
+	gpg -b thesiswm-@PACKAGE_VERSION@.tgz
+	scp thesiswm-@PACKAGE_VERSION@.tgz thesiswm-@PACKAGE_VERSION@.tgz.sig sabetts@dl.sv.nongnu.org:/releases/thesiswm/
+	( echo rm thesiswm-latest.tgz.sig && echo rm thesiswm-latest.tgz && echo ln thesiswm-@PACKAGE_VERSION@.tgz thesiswm-latest.tgz && echo ln thesiswm-@PACKAGE_VERSION@.tgz.sig thesiswm-latest.tgz.sig ) | sftp -b - sabetts@dl.sv.nongnu.org:/releases/thesiswm/
 
 clean:
 	rm -f *.fasl *.fas *.lib *.*fsl
 	rm -f *.log *.fns *.fn *.aux *.cp *.ky *.log *.toc *.pg *.tp *.vr *.vrs
-	rm -f stumpwm stumpwm.texi stumpwm.info
+	rm -f thesiswm thesiswm.texi thesiswm.info
 
-install: stumpwm.info stumpwm
+install: thesiswm.info thesiswm
 	test -z "$(destdir)$(bindir)" || mkdir -p "$(destdir)$(bindir)"
-	install -m 755 stumpwm "$(destdir)$(bindir)"
+	install -m 755 thesiswm "$(destdir)$(bindir)"
 	test -z "$(destdir)$(infodir)" || mkdir -p "$(destdir)$(infodir)"
-	install -m 644 stumpwm.info "$(destdir)$(infodir)"
-	install-info --info-dir="$(destdir)$(infodir)" "$(destdir)$(infodir)/stumpwm.info"
+	install -m 644 thesiswm.info "$(destdir)$(infodir)"
+	install-info --info-dir="$(destdir)$(infodir)" "$(destdir)$(infodir)/thesiswm.info"
 install-modules:
-	git clone https://github.com/stumpwm/stumpwm-contrib.git ~/.stumpwm.d/modules
+	git clone https://github.com/thesiswm/thesiswm-contrib.git ~/.thesiswm.d/modules
 uninstall:
-	rm "$(destdir)$(bindir)/stumpwm"
-	install-info --info-dir="$(destdir)$(infodir)" --remove "$(destdir)$(infodir)/stumpwm.info"
-	rm "$(destdir)$(infodir)/stumpwm.info"
+	rm "$(destdir)$(bindir)/thesiswm"
+	install-info --info-dir="$(destdir)$(infodir)" --remove "$(destdir)$(infodir)/thesiswm.info"
+	rm "$(destdir)$(infodir)/thesiswm.info"
 
 # End of file

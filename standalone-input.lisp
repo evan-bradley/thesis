@@ -1,14 +1,14 @@
 ;; Copyright (C) 2003-2008 Shawn Betts
 ;; Copyright (C) 2017-2018 Evan Bradley
 ;;
-;;  This file is part of stumpwm.
+;;  This file is part of thesiswm.
 ;;
-;; stumpwm is free software; you can redistribute it and/or modify
+;; thesiswm is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation; either version 2, or (at your option)
 ;; any later version.
 
-;; stumpwm is distributed in the hope that it will be useful,
+;; thesiswm is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
@@ -22,7 +22,7 @@
 ;; This file sloppily makes the input bar modular.
 ;;
 ;; Code:
-(in-package :stumpwm)
+(in-package :thesiswm)
 
 (export '(make-input-bar
           completing-bar-read))
@@ -269,7 +269,7 @@
               :adjustable t :fill-pointer t))
 
 (defun completing-bar-read (bar prompt completions &key require-match code x y)
-  "Read a line of input through stumpwm and return it with TAB
+  "Read a line of input through thesiswm and return it with TAB
 completion. completions can be a list, an fbound symbol, or a
 function. if its an fbound symbol or a function then that function is
 passed the substring to complete on and is expected to return a list
@@ -339,7 +339,7 @@ match with an element of the completions."
          (draw-input-bar-bucket bar prompt input "[No match]" t)))))
 
 (defun read-one-bar-line (bar prompt input &key require-match)
-  "Read a line of input through stumpwm and return it. returns nil if the user aborted."
+  "Read a line of input through thesiswm and return it. returns nil if the user aborted."
   (setf (input-bar-last-command bar) nil)
     (labels ((key-loop ()
                (loop for key = (read-event) do
@@ -752,7 +752,7 @@ functions are passed this structure as their first argument."
       (input-bar-insert-string input (getf *x-selection* :primary))
       (xlib:convert-selection :primary
                               :string (input-bar-window bar)
-                              :stumpwm-selection)))
+                              :thesiswm-selection)))
 
 (defun input-bar-yank-clipboard (bar input key)
   (declare (ignore key))
@@ -760,7 +760,7 @@ functions are passed this structure as their first argument."
       (input-bar-insert-string input (getf *x-selection* :clipboard))
       (xlib:convert-selection :clipboard
                               :string (input-bar-window bar)
-                              :stumpwm-selection)))
+                              :thesiswm-selection)))
 
 (defun input-bar-space-delimit (bar input key)
   (declare (ignore key) (ignore bar))

@@ -1,5 +1,5 @@
 
-(in-package :stumpwm)
+(in-package :thesiswm)
 
 (defgeneric font-exists-p (font))
 

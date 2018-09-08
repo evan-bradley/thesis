@@ -1,14 +1,14 @@
 ;; Copyright (C) 2008 Julian Stecklina, Shawn Betts, Ivy Foster
 ;; Copyright (C) 2014 David Bjergaard
 ;;
-;;  This file is part of stumpwm.
+;;  This file is part of thesiswm.
 ;;
-;; stumpwm is free software; you can redistribute it and/or modify
+;; thesiswm is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation; either version 2, or (at your option)
 ;; any later version.
 
-;; stumpwm is distributed in the hope that it will be useful,
+;; thesiswm is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
@@ -19,11 +19,11 @@
 
 ;; Commentary:
 ;;
-;; Use `set-module-dir' to set the location stumpwm searches for modules.
+;; Use `set-module-dir' to set the location thesiswm searches for modules.
 
 ;; Code:
 
-(in-package #:stumpwm)
+(in-package #:thesiswm)
 
 (export '(load-module
           list-modules
@@ -35,7 +35,7 @@
           add-to-load-path))
 
 (defvar *module-dir*
-  (pathname-as-directory (concat (getenv "HOME") "/.stumpwm.d/modules"))
+  (pathname-as-directory (concat (getenv "HOME") "/.thesiswm.d/modules"))
   "The location of the contrib modules on your system.")
 
 (defun build-load-path (path)
@@ -73,7 +73,7 @@ called each time StumpWM starts with the argument `*module-dir'"
   (setf *module-dir* dir)
   (init-load-path *module-dir*))
 
-(define-stumpwm-type :module (input prompt)
+(define-thesiswm-type :module (input prompt)
   (or (argument-pop-rest input)
       (completing-read (current-screen) prompt (list-modules) :require-match t)))
 (defun find-asd-file (path)

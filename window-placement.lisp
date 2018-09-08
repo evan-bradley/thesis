@@ -1,6 +1,6 @@
 ;;; Window placement routines
 
-(in-package :stumpwm)
+(in-package :thesiswm)
 
 (defun xwin-to-window (xwin)
   "Build a window for XWIN"

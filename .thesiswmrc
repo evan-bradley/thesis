@@ -1,6 +1,6 @@
 ;; -*-lisp-*-
 
-(in-package :stumpwm)
+(in-package :thesiswm)
 
 ;; Load swank.
 (require 'swank)

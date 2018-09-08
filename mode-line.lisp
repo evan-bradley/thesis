@@ -1,14 +1,14 @@
 ;; Copyright (C) 2006-2008 Shawn Betts
 ;; Copyright (C) 2016 Joram Schrijver
 ;;
-;;  This file is part of stumpwm.
+;;  This file is part of thesiswm.
 ;;
-;; stumpwm is free software; you can redistribute it and/or modify
+;; thesiswm is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation; either version 2, or (at your option)
 ;; any later version.
 
-;; stumpwm is distributed in the hope that it will be useful,
+;; thesiswm is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;; GNU General Public License for more details.
@@ -17,7 +17,7 @@
 ;; along with this software; see the file COPYING.  If not, see
 ;; <http://www.gnu.org/licenses/>.
 
-(in-package :stumpwm)
+(in-package :thesiswm)
 
 (export '(*mode-line-background-color*
           *mode-line-border-color*
@@ -141,7 +141,7 @@ timer.")
   cc
   height
   factor
-  (mode :stump))
+  (mode :thesis))
 
 ;;; Utilities
 
@@ -175,7 +175,7 @@ timer.")
 ;;; Creation
 
 (defun resize-mode-line (mode-line)
-  (when (eq (mode-line-mode mode-line) :stump)
+  (when (eq (mode-line-mode mode-line) :thesis)
     ;; This is a StumpWM mode-line
     (setf (xlib:drawable-height (mode-line-window mode-line))
           (+ (* 2 *mode-line-pad-y*)
@@ -327,7 +327,7 @@ timer.")
   (mode-line-format-elt (mode-line-format ml)))
 
 (defun redraw-mode-line (ml &optional force)
-  (when (eq (mode-line-mode ml) :stump)
+  (when (eq (mode-line-mode ml) :thesis)
     (let* ((*current-mode-line-formatters* *screen-mode-line-formatters*)
            (*current-mode-line-formatter-args* (list ml))
            (string (mode-line-format-string ml)))
@@ -406,7 +406,7 @@ timer.")
            ;; Show it.
            (setf (mode-line-mode ml) :visible)
            (xlib:map-window (mode-line-window ml)))
-          (:stump
+          (:thesis
            ;; Delete it
            (destroy-mode-line ml)))
         (make-mode-line screen head format))

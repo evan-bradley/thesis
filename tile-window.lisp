@@ -1,6 +1,6 @@
 ;;; a dumping spot for window stuff that has tiling stuff in it
 
-(in-package :stumpwm)
+(in-package :thesiswm)
 
 (export '(*ignore-wm-inc-hints*))
 
