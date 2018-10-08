@@ -29,6 +29,8 @@
     ((eval-command "right") "[right]")
     ((funcall #'add-win-wrapped) "[+++]" )))
 
+(setq *default-command-string* (render-bar-string *default-command-list*))
+
 (setq *mouse-focus-policy* :sloppy)
 (setq *debug-level* 99)
 (redirect-all-output (data-dir-file "debug-output" "txt"))
