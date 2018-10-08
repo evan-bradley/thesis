@@ -154,23 +154,23 @@
              (setq offset-y (- min-y max-y))))))
     (pan-group (- offset-x min-x)
                (- offset-y min-y))
+    (group-focus-window (current-group) win)
     (setq *current-scale* scale)
     (scale-desktop scale)
     #|(if (> scale 100) (run-hook *scaled-hook*))|#))
 
+;; TODO: Make the directions generic (to allow for aliases)
 (defcommand move-to-window (dir) ((:string "Enter direction: "))
-  (if (or (equal dir "up") (equal dir "down") (equal dir "left") (equal dir "right"))
+  (if (member dir '("up" "down" "left" "right"))
       (let* ((win-id (locate-closest-window
                       (make-win-geometry (group-current-window (current-group)))
                       (graph->geom-list *window-graph*)
                       dir))
              (win (win-node-win (gethash win-id *window-graph*))))
         (if (not (null win))
-            (progn
-              (zoom-to-window win 'left)
-              (focus-window win t))
+            (zoom-to-window win 'left))
             (echo "No window in that direction.")))
-      (echo "Invalid direction. Allowed directions: up, down, left, right.")))
+      (echo "Invalid direction. Allowed directions: up, down, left, right."))
 
 (defvar *zoom-map*
   '(((kbd "M-h") (list-to-string (list "pan-group " (+ 0 (screen-width (current-screen))) " " 0)))

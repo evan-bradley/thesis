@@ -62,6 +62,19 @@
        (car list-of-windows))
       (T (get-window-at-point x y (cdr list-of-windows))))))
 
+(defun window-under-mouse ()
+  (multiple-value-bind (relx rely same-screen-p child state-mask)
+      (xlib:query-pointer (screen-root (current-screen)))
+    (declare (ignore same-screen-p child state-mask))
+    (get-window-at-point
+     ;; (round (/ relx
+     ;;           (/ *current-scale* 100)))
+     ;; (round (/ rely
+     ;;           (/ *current-scale* 100)))
+     relx
+     rely
+     (group-windows (current-group)))))
+
 ;; TODO: Re-draw bar if windows are in view of screen, just to be safe.
 ;; TODO: Make a hook that is run every time this function runs.
 (defun pan-windows (group &key x y)
@@ -73,7 +86,8 @@
                                  (window-y win)
                                  (+ y (window-y win)))))
                    (float-window-move-resize win :x new-x :y new-y)))
-       (group-windows group)))
+       (group-windows group))
+  (group-focus-window (current-group) (window-under-mouse)))
 
 (defmethod update-decoration ((window float-window))
   (let ((group (window-group window)))
