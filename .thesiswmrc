@@ -10,6 +10,7 @@
  :dont-close t)
 
 (load-module "ttf-fonts")
+(clx-truetype:cache-fonts)
 (set-font (make-instance 'xft:font :family "DejaVu Sans Mono" :subfamily "Book" :size 12))
 (set-bg-color "white")
 (set-fg-color "black")
@@ -20,16 +21,16 @@
 (setq *startup-message* nil)
 
 (setq *default-command-list*
-  '(((eval-command "delete") "Ø")
-    ((eval-command "maximize 1 1 top left") "[▒▒]")
-    ((eval-command "maximize 2 1 top left") "[▒_]")
-    ((eval-command "maximize 2 1 top right") "[_▒]")
-    ((eval-command "left") "«——")
-    ((eval-command "right") "——»")
-    ((funcall #'add-win-wrapped) "+++" )))
+  '(((eval-command "delete") "[X]")
+    ((eval-command "maximize 1 1 top left") "[maxf]")
+    ((eval-command "maximize 2 1 top left") "[maxl]")
+    ((eval-command "maximize 2 1 top right") "[maxr]")
+    ((eval-command "left") "[left]")
+    ((eval-command "right") "[right]")
+    ((funcall #'add-win-wrapped) "[+++]" )))
 
 (setq *mouse-focus-policy* :sloppy)
-(setq *debug-level* 0)
+(setq *debug-level* 99)
 (redirect-all-output (data-dir-file "debug-output" "txt"))
 
 ;; Hard-coded number of clusters.
@@ -38,14 +39,14 @@
 ;; change the prefix key to something else
 (set-prefix-key (kbd "C-;"))
 
-;; Make and switch to a floating group on startup.
-(eval-command "gnewbg-float float" nil)
-(eval-command "gkill" nil)
-
-(define-key *root-map* (kbd "s-h") "pan-group 1920 0")
-(define-key *root-map* (kbd "s-j") "pan-group 0 -1200")
-(define-key *root-map* (kbd "s-k") "pan-group 0 1200")
-(define-key *root-map* (kbd "s-l") "pan-group -1920 0")
+(define-key *root-map* (kbd "s-h")
+  (format nil "pan-group ~a 0" (screen-width (current-screen))))
+(define-key *root-map* (kbd "s-j")
+  (format nil "pan-group 0 -~a" (screen-height (current-screen))))
+(define-key *root-map* (kbd "s-k")
+  (format nil "pan-group 0 ~a" (screen-height (current-screen))))
+(define-key *root-map* (kbd "s-l")
+  (format nil "pan-group -~a 0" (screen-width (current-screen))))
 (define-key *root-map* (kbd "s-o") "view-all-in-group")
 
 (define-key *root-map* (kbd ".") "colon")
@@ -86,5 +87,5 @@
   (format nil "~{~A~}" lst))
 
 (run-shell-command "compton --dbus")
-(run-shell-command "feh --bg-center ~/Pictures/background.png")
-(run-shell-command "redshift")
+;; (run-shell-command "feh --bg-center ~/Pictures/background.png")
+;; (run-shell-command "redshift")
