@@ -32,17 +32,16 @@
 (defvar *current-event-time* nil)
 
 (defmacro define-thesis-event-handler (event keys &body body)
-  (let ((fn-name (gensym))
-        (event-slots (gensym)))
+  (let ((event-slots (gensym)))
     (multiple-value-bind (body declarations docstring)
         (parse-body body :documentation t)
-        `(labels ((,fn-name (&rest ,event-slots &key ,@keys &allow-other-keys)
-                    (declare (ignore ,event-slots))
-                    ,@(when docstring
-                        (list docstring))
-                    ,@declarations
-                    ,@body))
-           (setf (gethash ,event *event-fn-table*) #',fn-name)))))
+      `(setf (gethash ,event *event-fn-table*)
+             (lambda (&rest ,event-slots &key ,@keys &allow-other-keys)
+               (declare (ignore ,event-slots)
+                        ,@(cdar declarations))
+               ,@(when docstring
+                   (list docstring))
+               ,@body)))))
 
 ;;; Configure request
 
@@ -390,6 +389,20 @@ converted to an atom is removed."
 (define-thesis-event-handler :selection-clear (selection)
   (setf (getf *x-selection* selection) nil))
 
+(define-thesis-event-handler :selection-notify (window property selection)
+  (dformat 2 "selection-notify: ~s ~s ~s~%" window property selection)
+  (when property
+    (let* ((selection (or selection :primary))
+           (sel-string (utf8-to-string
+                        (xlib:get-property window
+                                           property
+                                           :type :utf8_string
+                                           :result-type 'vector
+                                           :delete-p t))))
+      (when (< 0 (length sel-string))
+        (setf (getf *x-selection* selection) sel-string)
+        (run-hook-with-args *selection-notify-hook* sel-string)))))
+
 (defun find-message-window-screen (win)
   "Return the screen, if any, that message window WIN belongs."
   (dolist (screen *screen-list*)
@@ -471,9 +484,8 @@ converted to an atom is removed."
             (echo-string (window-screen window) (format nil "'~a' denied map request" (window-name window)))
             (echo-string (window-screen window) (format nil "'~a' denied map request in group ~a" (window-name window) (group-name (window-group window))))))
       (frame-raise-window (window-group window) (window-frame window) window
-                          (if (eq (window-frame window)
-                                  (tile-group-current-frame (window-group window)))
-                              t nil))))
+                          (eq (window-frame window)
+                              (tile-group-current-frame (window-group window))))))
 
 (defun maybe-raise-window (window)
   (if (deny-request-p window *deny-raise-request*)
@@ -599,8 +611,9 @@ the window in it's frame."
 (defun make-xlib-window (drawable)
   "For some reason the CLX xid cache screws up returns pixmaps when
 they should be windows. So use this function to make a window out of DRAWABLE."
-  (xlib::make-window :id (xlib:drawable-id drawable)
-                     :display *display*))
+  (make-instance 'xlib:window
+                 :id (xlib:drawable-id drawable)
+                 :display *display*))
 
 (defun handle-event (&rest event-slots &key display event-key &allow-other-keys)
   (declare (ignore display))
