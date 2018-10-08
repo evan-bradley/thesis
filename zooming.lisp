@@ -172,25 +172,6 @@
             (echo "No window in that direction.")))
       (echo "Invalid direction. Allowed directions: up, down, left, right.")))
 
-(defun get-window-at-point (x y list-of-windows)
-  (let ((win (car list-of-windows)))
-    (cond
-      ((null list-of-windows) 'root-window)
-      ((and (>= x (window-x win))
-            (>= y (window-y win))
-            (<= x (+ (window-x win) (window-width win)))
-            (<= y (+ (window-y win) (window-height win))))
-       (car list-of-windows))
-      (T (get-window-at-point x y (cdr list-of-windows))))))
-
-(defcommand query-point (x y) ((:number "Enter x: ") (:number "Enter y: "))
-    (echo (get-window-at-point
-     (round (/ x
-               (/ *current-scale* 100)))
-     (round (/ y
-               (/ *current-scale* 100)))
-     (group-windows (current-group)))))
-
 (defvar *zoom-map*
   '(((kbd "M-h") (list-to-string (list "pan-group " (+ 0 (screen-width (current-screen))) " " 0)))
    ((kbd "M-j") (list-to-string (list "pan-group " 0 " " (- 0 (screen-height (current-screen))))))

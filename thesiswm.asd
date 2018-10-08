@@ -40,6 +40,7 @@
                (:file "floating-group")
                (:file "graph")
                (:file "zooming")
+               (:file "window-commands")
                (:file "tile-window")
                (:file "tile-group")
                (:file "window-placement")

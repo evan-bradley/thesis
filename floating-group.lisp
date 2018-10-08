@@ -51,6 +51,17 @@
                 (xlib:drawable-height xwin) height
                 (window-height win) height))))))
 
+(defun get-window-at-point (x y list-of-windows)
+  (let ((win (car list-of-windows)))
+    (cond
+      ((null list-of-windows) 'root-window)
+      ((and (>= x (window-x win))
+            (>= y (window-y win))
+            (<= x (+ (window-x win) (window-width win)))
+            (<= y (+ (window-y win) (window-height win))))
+       (car list-of-windows))
+      (T (get-window-at-point x y (cdr list-of-windows))))))
+
 ;; TODO: Re-draw bar if windows are in view of screen, just to be safe.
 ;; TODO: Make a hook that is run every time this function runs.
 (defun pan-windows (group &key x y)
@@ -378,6 +389,16 @@
   (eval-command (format nil "pan-group ~a ~a"
                         (* -1 (screen-width (current-screen)))
                         0)))
+
+(defcommand query-point (x y) ((:number "Enter x: ") (:number "Enter y: "))
+  (echo (get-window-at-point
+         x
+         y
+         ;; (round (/ x
+         ;;           (/ *current-scale* 100)))
+         ;; (round (/ y
+         ;;           (/ *current-scale* 100)))
+         (group-windows (current-group)))))
 
 ;;(defcommand float-window-alter (win &key x y width height) ((:rest "Window (, x, y, width, height): "))
 ;;  "Create a floating window group with the specified name, but do not switch to it."
