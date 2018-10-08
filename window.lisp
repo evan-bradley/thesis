@@ -655,8 +655,10 @@ and bottom_end_x."
          (window-input-bar (window-bar window)))
     (unless (eq (xlib:window-map-state (window-xwin window)) :unmapped)
       (incf (window-unmap-ignores window)))
-    (xlib:reparent-window (input-bar-window window-input-bar) master-window 0 0)
-    (setf (xlib:drawable-width (input-bar-window window-input-bar)) (window-width window))
+    ;; TODO: Check if window is floting, not group.
+    (when (typep (current-group) 'float-group)
+      (xlib:reparent-window (input-bar-window window-input-bar) master-window 0 0)
+      (setf (xlib:drawable-width (input-bar-window window-input-bar)) (window-width window)))
     ;;(make-input-bar :parent master-window)
     (xlib:reparent-window (window-xwin window) master-window 0 0)
     ;;(setup-input-bar-window window-input-bar ": " (input-bar-input-line window-input-bar))
