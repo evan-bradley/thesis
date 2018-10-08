@@ -283,7 +283,7 @@ chunks."
     (loop while (> (one-cmd) 0))))
 
 (defun handle-thesiswm-commands (root)
-  "Handle a StumpWM style command request."
+  "Handle a ThesisWM style command request."
   (let* ((win root)
          (screen (find-screen root))
          (data (xlib:get-property win :thesiswm_command :delete-p t))
