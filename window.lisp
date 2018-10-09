@@ -661,10 +661,10 @@ and bottom_end_x."
       (setf (xlib:drawable-width (input-bar-window window-input-bar)) (window-width window)))
     ;;(make-input-bar :parent master-window)
     (xlib:reparent-window (window-xwin window) master-window 0 0)
+    (xwin-grab-buttons master-window)
     ;;(setup-input-bar-window window-input-bar ": " (input-bar-input-line window-input-bar))
     ;;(draw-input-bar-bucket window-input-bar ": " (input-bar-input-line window-input-bar))
     ;;(setf (xlib:drawable-y (window-xwin window)) 40)
-    ;;(xwin-grab-buttons master-window)
     ;;     ;; we need to update these values since they get set to 0,0 on reparent
     ;;     (setf (window-x window) 0
     ;;          (window-y window) 0)
