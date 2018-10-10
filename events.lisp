@@ -592,18 +592,18 @@ the window in it's frame."
 (define-thesis-event-handler :button-press (window code x y child time)
   (let ((screen (find-screen window))
         (mode-line (find-mode-line-by-window window))
-        (input-bar (find-input-bar-by-window window))
-        (win (find-window-by-parent (or child window) (top-windows))))
-    ;;(dformat 0 "(~a, ~a) ~a ~a~%" x y window child)
+        (win (find-window-by-parent window (top-windows))))
     (cond
       ((and screen (not child))
        (group-button-press (screen-current-group screen) x y :root)
-       (run-hook-with-args *root-click-hook* screen code x y)) (mode-line
+       (run-hook-with-args *root-click-hook* screen code x y))
+      (mode-line
        (run-hook-with-args *mode-line-click-hook* mode-line code x y))
-      (win
+      ((not child))
+      ((and win (xlib:window-equal child (window-xwin win)))
        (group-button-press (window-group win) x y win))
-      (input-bar
-       (start-bar input-bar code x y))
+      ((and win (xlib:window-equal child (input-bar-window (window-bar win))))
+       (start-bar (window-bar win) code x y))
       ))
   ;; Pass click to client
   (xlib:allow-events *display* :replay-pointer time))
