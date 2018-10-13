@@ -87,7 +87,9 @@
                                  (+ y (window-y win)))))
                    (float-window-move-resize win :x new-x :y new-y)))
        (group-windows group))
-  (group-focus-window (current-group) (window-under-mouse)))
+  (let ((window (window-under-mouse)))
+    (unless (equal window 'root-window)
+      (group-focus-window (current-group) window))))
 
 (defmethod update-decoration ((window float-window))
   (let ((group (window-group window)))
