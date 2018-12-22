@@ -47,14 +47,14 @@
 
 (defun scale-desktop (amount)
   (dbus:with-open-bus (bus (dbus:session-server-addresses))
-    (dbus:with-introspected-object (compton bus "/" "com.github.chjj.compton._1_0")
+    (dbus:with-introspected-object (compton bus "/" "com.github.chjj.compton._0_0")
       (compton "com.github.chjj.compton" "scale" (float (/ amount 100))))))
 
 (defun pan-desktop-visual (x y)
   (incf (point-x *current-offset*) x)
   (incf (point-y *current-offset*) y)
   (dbus:with-open-bus (bus (dbus:session-server-addresses))
-    (dbus:with-introspected-object (compton bus "/" "com.github.chjj.compton._1_0")
+    (dbus:with-introspected-object (compton bus "/" "com.github.chjj.compton._0_0")
       (compton "com.github.chjj.compton" "offset" x y))))
 
 ;; Make smaller.
