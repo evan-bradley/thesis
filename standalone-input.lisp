@@ -84,7 +84,8 @@
   current-completions
   current-completions-idx
   history-ignore-duplicates
-  numpad-map)
+  numpad-map
+  active)
 
 (defvar *input-bars* ()
   "All current input bars.")
@@ -121,7 +122,7 @@
                         :background bg-color
                         :border border-color
                         :border-width 1
-                        :event-mask '(:focus-change :button-press :button-release :key-press :key-release))
+                        :event-mask '(:focus-change :key-press :key-release))
                :key-window (xlib:create-window
                             :parent parent-window
                             :x 0 :y 0 :width 1 :height 1
@@ -151,7 +152,8 @@
                :numpad-map '((87 10 . 16) (88  11 . 16) (89 12 . 16) (106 61 . 16)
                              (83 13 . 16) (84  14 . 16) (85 15 . 16) (86  21 . 17)
                              (79 16 . 16) (80  17 . 16) (81 18 . 16) (63  17 . 17)
-                             (82 20 . 16) (104 36 . 16) (91 60 . 16) (90  19 . 16))))
+                             (82 20 . 16) (104 36 . 16) (91 60 . 16) (90  19 . 16))
+               :active nil))
     (xlib:change-property
      (input-bar-window bar)
      :_NET_WM_WINDOW_TYPE
@@ -224,6 +226,7 @@
 (defun shutdown-input-bar-window (bar)
   (xlib:ungrab-keyboard *display*)
   (let* ((input (input-bar-input-line bar)))
+    (setf (input-bar-active bar) nil)
     (setf (input-bar-line-position input) -1)
     (draw-input-bar-bucket bar *default-command-prompt* input)))
 
@@ -255,7 +258,7 @@
 (defun read-event-handle-event (&rest event-slots &key display event-key &allow-other-keys)
   (declare (ignore display))
   ;;(dformat 0 ">>> ~S~%" event-slots)
-  ;;(dformat 0 ">>> ~S~%" event-key)
+  (dformat 0 ">>> ~S~%" event-key)
   (case event-key
     (:button-press
      ;;(dformat 0 ">>> (~a, ~a)~%" (getf event-slots :x) (getf event-slots :y))
@@ -279,6 +282,7 @@
 
 (defun read-event ()
   (loop for ev = (xlib:process-event *display* :handler #'read-event-handle-event :timeout nil) do
+    (dformat 0 "ev: ~S~%" ev)
     (cond ((stringp ev)
            (return ev))
           ((and (consp ev)
@@ -286,7 +290,11 @@
            (return (rest ev)))
           ((and (consp ev)
                 (eq (second ev) :button-press))
-           (return ev)))))
+           (return ev))
+          ((and (consp ev)
+                (eq (second ev) :enter-notify))
+           (return ev))
+          (t nil))))
 
 (defun make-input-bar-string (initial-input)
   (make-array (length initial-input) :element-type 'character :initial-contents initial-input
@@ -339,6 +347,7 @@ match with an element of the completions."
             (unless (eq cmd nil)
               ;; (with-restarts-menu (eval cmd))
               (execute-command cmd bar *execution-methods*)
+              (shutdown-input-bar-window bar)
               (throw :abort t))))
          (2
           (input-bar-goto-char input pos))
@@ -368,6 +377,7 @@ match with an element of the completions."
   (setf (input-bar-last-command bar) nil)
     (labels ((key-loop ()
                (loop for key = (read-event) do
+                 (dformat 0 "~a" key)
                  (process-key bar prompt input key :require-match require-match))))
       (setup-input-bar-window bar prompt input)
       (catch :abort
@@ -835,11 +845,14 @@ input (pressing Return), nil otherwise."
 (defun start-bar (bar &optional code x y)
   "Read a command from the user. @var{initial-text} is optional. When
 supplied, the text will appear in the prompt."
-  (let ((cmd (completing-bar-read bar *default-command-prompt* (all-commands) :code code :x x :y y)))
+  (setf (input-bar-active bar) t)
+  (completing-bar-read bar *default-command-prompt* (all-commands) :code code :x x :y y)
+  ;; (let ((cmd (completing-bar-read bar *default-command-prompt* (all-commands) :code code :x x :y y)))
     ;;(unless cmd
     ;;  (throw 'error :abort))
-    (when (plusp (length cmd))
-      (eval-command cmd t))))
+    ;; (when (plusp (length cmd))
+    ;;   (eval-command cmd t)))
+    )
 
 ;;(defvar *global-bar* (make-input-bar))
 

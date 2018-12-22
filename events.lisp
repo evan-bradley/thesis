@@ -603,8 +603,10 @@ the window in it's frame."
       ((and win (xlib:window-equal child (window-xwin win)))
        (group-button-press (window-group win) x y win))
       ((and win (xlib:window-equal child (input-bar-window (window-bar win))))
-       (start-bar (window-bar win) code x y))
-      ))
+       (dformat 0 "bar active: ~a~%" (input-bar-active (window-bar win)))
+       (if (input-bar-active (window-bar win))
+           (xlib:allow-events *display* :replay-pointer time)
+           (start-bar (window-bar win) code x y)))))
   ;; Pass click to client
   (xlib:allow-events *display* :replay-pointer time))
 
